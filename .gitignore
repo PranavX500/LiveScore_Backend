@@ -4,6 +4,10 @@ target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 
+### Firebase ###
+src/main/resources/*.json
+firebase-adminsdk*.json
+
 ### STS ###
 .apt_generated
 .classpath
