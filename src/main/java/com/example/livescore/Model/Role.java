@@ -3,6 +3,6 @@ package com.example.livescore.Model;
 public enum Role {
     ADMIN,
     USER,
-    TEAM_Leader,
+    TEAM_LEADER,
     Player
 }
