@@ -16,8 +16,9 @@ public class Team {
     private String id;
     private String name;
     private String leaderId;
-    private int maxPlayers;
-    private int currentPlayers;
-    private String status; // OPEN, FULL, INACTIVE
+    private Long maxPlayers;
+    private Long currentPlayers;
+    private String status;
+    private String tournamentId;
     private Instant createdAt;
 }

@@ -19,7 +19,7 @@ public class UserService {
     private final FirebaseService firebaseService;
     private static final String COLLECTION = "users";
 
-    /* ---------- SIGNUP (CREATE AUTH + PROFILE) ---------- */
+    /* ---------- SIGNUP ---------- */
     public User signup(SignupRequest request) throws Exception {
 
         // 1️⃣ Create Firebase Auth user
@@ -31,18 +31,17 @@ public class UserService {
         UserRecord userRecord = FirebaseAuth.getInstance().createUser(createRequest);
         String uid = userRecord.getUid();
 
-        // 🔥 2️⃣ ADD ROLE INTO FIREBASE TOKEN (CUSTOM CLAIM)
-        FirebaseAuth.getInstance().setCustomUserClaims(uid, Map.of(
-                "role", "USER"
-        ));
+        // 2️⃣ Default role = USER (Firebase claim optional)
+        FirebaseAuth.getInstance().setCustomUserClaims(uid,
+                Map.of("role", "USER"));
 
-        // 3️⃣ Create Firestore profile
+        // 3️⃣ Firestore profile
         User user = User.builder()
                 .id(uid)
                 .name(request.getName())
                 .email(request.getEmail())
                 .photoUrl(request.getPhotoUrl())
-                .role(String.valueOf(Role.USER))        // <-- store enum, not string
+                .role(String.valueOf(Role.USER))   // ✅ enum
                 .createdAt(Date.from(Instant.now()))
                 .build();
 
@@ -50,20 +49,34 @@ public class UserService {
 
         return user;
     }
+    public void makeAdmin(String uid) throws Exception {
 
+        User user = getUser(uid);
+
+        if (user == null) {
+            throw new RuntimeException("User not found");
+        }
+
+        // 1️⃣ update Firestore role
+        user.setRole(Role.ADMIN);
+        firebaseService.save(COLLECTION, uid, user);
+
+        // 2️⃣ update Firebase custom claim
+        FirebaseAuth.getInstance().setCustomUserClaims(uid,
+                Map.of("role", Role.ADMIN.name()));
+    }
 
     /* ---------- UPDATE PROFILE ---------- */
     public User updateProfile(String uid, User request) throws Exception {
 
-        User existing = firebaseService.get(COLLECTION, uid, User.class);
+        User existing = getUser(uid);
 
         if (existing == null) {
             throw new RuntimeException("User does not exist");
         }
 
-        // preserve protected fields
         request.setId(uid);
-        request.setRole(Role.valueOf(existing.getRole()));
+        request.setRole(Role.valueOf(existing.getRole()));      // preserve role
         request.setCreatedAt(existing.getCreatedAt());
         request.setEmail(existing.getEmail());
 
@@ -81,5 +94,23 @@ public class UserService {
     public void deleteUser(String uid) throws Exception {
         firebaseService.delete(COLLECTION, uid);
         FirebaseAuth.getInstance().deleteUser(uid);
+    }
+
+    /* ---------- ROLE UPDATE (TEAM LOGIC) ---------- */
+    public void updateRole(String uid, Role role) throws Exception {
+
+        User user = getUser(uid);
+
+        if (user == null) {
+            throw new RuntimeException("User not found");
+        }
+
+        user.setRole(role);
+
+        firebaseService.save(COLLECTION, uid, user);
+
+        // optional: sync Firebase claim
+        FirebaseAuth.getInstance().setCustomUserClaims(uid,
+                Map.of("role", role.name()));
     }
 }
