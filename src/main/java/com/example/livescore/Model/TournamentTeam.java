@@ -5,16 +5,12 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.Instant;
-
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class TeamMember {
+public class TournamentTeam {
 
-    private String userId;
-    private String name;
-    private String role; // LEADER, PLAYER
-    private Instant joinedAt;
+    private String teamId;
+    private String teamName;
 }

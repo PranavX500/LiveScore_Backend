@@ -1,12 +1,15 @@
 package com.example.livescore.Controller;
 
 
+import com.example.livescore.Model.Sports;
 import com.example.livescore.Model.Team;
 import com.example.livescore.Service.TeamService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/team")
@@ -21,10 +24,17 @@ public class TeamController {
     public Team createTeam(
             @RequestParam String name,
             @RequestParam Long maxPlayers,
+            @RequestParam Sports sports,
             Authentication authentication) throws Exception {
 
-        String creatorUid = authentication.getName(); // Firebase UID
+        String creatorUid = authentication.getName();
 
-        return teamService.createTeam(creatorUid, maxPlayers, name);
+        return teamService.createTeam(creatorUid, maxPlayers, name, sports);
+    }
+
+    @GetMapping("/teams")
+    @PreAuthorize("hasRole('USER')")
+    public List<Team> getAllTeams() throws Exception {
+        return teamService.getAllTeams();
     }
 }

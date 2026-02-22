@@ -1,10 +1,6 @@
 package com.example.livescore.Model;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
+import lombok.*;
 import java.time.Instant;
 
 @Data
@@ -14,7 +10,8 @@ import java.time.Instant;
 public class TeamJoinRequest {
 
     private String id;
+    private String teamId;
     private String userId;
-    private String status; // PENDING, APPROVED, REJECTED
+    private Status status;   // PENDING, APPROVED, REJECTED
     private Instant createdAt;
 }

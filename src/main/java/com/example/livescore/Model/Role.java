@@ -4,5 +4,5 @@ public enum Role {
     ADMIN,
     USER,
     TEAM_LEADER,
-    Player
+    PLAYER
 }

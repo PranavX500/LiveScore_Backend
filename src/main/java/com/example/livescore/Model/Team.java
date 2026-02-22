@@ -15,6 +15,7 @@ public class Team {
 
     private String id;
     private String name;
+    private Sports sports;
     private String leaderId;
     private Long maxPlayers;
     private Long currentPlayers;

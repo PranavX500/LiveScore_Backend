@@ -1,5 +1,6 @@
 package com.example.livescore.Service;
 
+import com.example.livescore.Model.Match;
 import com.example.livescore.Model.Registeration;
 import com.example.livescore.Model.Team;
 import com.example.livescore.Model.Tournament;
@@ -8,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.Date;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -88,6 +90,18 @@ public class TournamentService {
         }
 
         firebaseService.save("tournaments", tournamentId, tournament);
+    }
+    public List<Tournament> getAllTournaments() throws Exception {
+        return firebaseService.getAll(COLLECTION, Tournament.class);
+    }
+    public List<Match> getMatches(String tournamentId) throws Exception {
+
+        return firebaseService.getAllSub(
+                "tournaments",
+                tournamentId,
+                "matches",
+                Match.class
+        );
     }
 }
 
