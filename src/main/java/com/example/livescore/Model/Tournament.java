@@ -38,4 +38,6 @@ public class Tournament {
             pattern = "yyyy-MM-dd'T'HH:mm:ss'Z'",
             timezone = "UTC")
     private Date createdAt;
+
+
 }

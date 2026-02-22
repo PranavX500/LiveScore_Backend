@@ -1,6 +1,7 @@
 package com.example.livescore.Model;
 
 
+import com.google.cloud.firestore.annotation.Exclude;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -22,6 +23,7 @@ public class User {
     private Date createdAt;
     private String role;
 
+    @Exclude
     public Role getRoleEnum() {
         return role == null ? null : Role.valueOf(role);
     }
@@ -30,5 +32,6 @@ public class User {
         this.role = role == null ? null : role.name();
     }
 }
+
 
 
