@@ -28,10 +28,13 @@ public class SecurityConfig {
 
                         .requestMatchers("/public/**").permitAll()
                         .requestMatchers("/auth/signup").permitAll()
+                        .requestMatchers("/api/team/teams").permitAll()
+                        .requestMatchers("/api/team/get/**").permitAll()
+                        .requestMatchers("/api/tournament/**").permitAll()
 
 
-                        // ADMIN
-                        .requestMatchers("/auth/make-admin/**").hasRole("ADMIN")
+
+                        .requestMatchers("/auth/make-admin/**").permitAll()
 
                         .anyRequest().authenticated()
                 )

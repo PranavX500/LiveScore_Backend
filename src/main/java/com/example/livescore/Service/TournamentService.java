@@ -1,9 +1,6 @@
 package com.example.livescore.Service;
 
-import com.example.livescore.Model.Match;
-import com.example.livescore.Model.Registeration;
-import com.example.livescore.Model.Team;
-import com.example.livescore.Model.Tournament;
+import com.example.livescore.Model.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -83,6 +80,17 @@ public class TournamentService {
         // assign tournament to team
         team.setTournamentId(tournamentId);
         teamService.save(team);
+        TournamentTeam tt = TournamentTeam.builder()
+                .teamId(team.getId())
+                .teamName(team.getName())
+                .build();
+        firebaseService.saveSub(
+                "tournaments",
+                tournamentId,
+                "teams",
+                team.getId(),
+                tt
+        );
 
         // 🔥 AUTO CLOSE
         if (registered >= tournament.getTotalTeams()) {
@@ -101,6 +109,21 @@ public class TournamentService {
                 tournamentId,
                 "matches",
                 Match.class
+        );
+    }
+    public List<TournamentTeam> getRegisteredTeams(String tournamentId) throws Exception {
+
+        Tournament tournament = getTournament(tournamentId);
+
+        if (tournament == null) {
+            throw new RuntimeException("Tournament not found");
+        }
+
+        return firebaseService.getAllSub(
+                "tournaments",
+                tournamentId,
+                "teams",
+                TournamentTeam.class
         );
     }
 }

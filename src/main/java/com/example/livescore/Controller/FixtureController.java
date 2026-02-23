@@ -3,6 +3,7 @@ package com.example.livescore.Controller;
 import com.example.livescore.Model.Match;
 import com.example.livescore.Service.FixtureService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
