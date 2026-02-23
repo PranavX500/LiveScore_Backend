@@ -33,8 +33,12 @@ public class TeamController {
     }
 
     @GetMapping("/teams")
-    @PreAuthorize("hasRole('USER')")
+
     public List<Team> getAllTeams() throws Exception {
         return teamService.getAllTeams();
+    }
+    @GetMapping("/get/{teamId}")
+    public Team getTeamDetails(@PathVariable String teamId) throws Exception {
+        return teamService.getTeam(teamId);
     }
 }

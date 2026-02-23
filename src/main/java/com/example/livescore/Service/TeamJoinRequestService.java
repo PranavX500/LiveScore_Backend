@@ -5,6 +5,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.util.List;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -152,6 +154,21 @@ public class TeamJoinRequestService {
                 teamId,
                 SUB,
                 requestId
+        );
+    }
+    /* ---------- GET ALL REQUESTS FOR TEAM ---------- */
+    public List<TeamJoinRequest> getRequestsForTeam(String teamId) throws Exception {
+
+        Team team = teamService.getTeam(teamId);
+        if (team == null) {
+            throw new RuntimeException("Team not found");
+        }
+
+        return firebaseService.getAllSub(
+                COLLECTION,   // "teams"
+                teamId,
+                SUB,          // "requests"
+                TeamJoinRequest.class
         );
     }
 

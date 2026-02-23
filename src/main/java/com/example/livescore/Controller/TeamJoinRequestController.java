@@ -70,4 +70,25 @@ public class TeamJoinRequestController {
         service.rejectRequest(teamId, requestId, auth.getName());
         return "Request rejected";
     }
+    /* ---------- GET ALL REQUESTS FOR TEAM ---------- */
+    @GetMapping
+    @PreAuthorize("hasRole('TEAM_LEADER')")
+    public ResponseEntity<?> getRequests(
+            @PathVariable String teamId,
+            Authentication auth) {
+
+        try {
+            // optional: ensure caller is leader of this team
+            // (extra security)
+            // service.validateLeader(teamId, auth.getName());
+
+            return ResponseEntity.ok(
+                    service.getRequestsForTeam(teamId)
+            );
+
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError()
+                    .body("Error fetching requests: " + e.getMessage());
+        }
+    }
 }
