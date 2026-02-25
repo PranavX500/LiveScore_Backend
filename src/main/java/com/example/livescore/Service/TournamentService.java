@@ -21,13 +21,33 @@ public class TournamentService {
 
     public void createTournament(Tournament tournament) throws Exception {
 
-        // auto id (optional but recommended)
+        // ⭐ Generate ID if missing
         if (tournament.getId() == null || tournament.getId().isEmpty()) {
             tournament.setId(UUID.randomUUID().toString());
         }
 
-        // auto createdAt
+        // ⭐ Created time
         tournament.setCreatedAt(new Date());
+
+        // ⭐ Sport-specific validation
+        if (tournament.getSports() == Sports.CRICKET) {
+
+            // if overs not provided → default 6
+            if (tournament.getTotalOvers() == null || tournament.getTotalOvers() <= 0) {
+                tournament.setTotalOvers(6L);
+            }
+
+        } else {
+            // non-cricket → remove overs
+            tournament.setTotalOvers(null);
+        }
+
+        // ⭐ Optional sanity limits
+        if (tournament.getTotalOvers() != null) {
+            if (tournament.getTotalOvers() > 50) {
+                throw new RuntimeException("Overs too large");
+            }
+        }
 
         firebaseService.save(COLLECTION, tournament.getId(), tournament);
     }

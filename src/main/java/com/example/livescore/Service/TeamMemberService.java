@@ -4,6 +4,8 @@ import com.example.livescore.Model.TeamMember;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 public class TeamMemberService {
@@ -31,6 +33,16 @@ public class TeamMemberService {
                 teamId,
                 SUB,
                 userId
+        );
+    }
+
+    public List<TeamMember> getMembersOfTeam(String teamId) throws Exception {
+
+        return firebaseService.getAllSub(
+                COLLECTION,   // "teams"
+                teamId,       // specific team doc
+                SUB,          // "members"
+                TeamMember.class
         );
     }
 }
