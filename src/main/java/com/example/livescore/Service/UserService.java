@@ -113,4 +113,5 @@ public class UserService {
         FirebaseAuth.getInstance().setCustomUserClaims(uid,
                 Map.of("role", role.name()));
     }
+
 }

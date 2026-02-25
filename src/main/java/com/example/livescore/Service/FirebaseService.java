@@ -1,14 +1,14 @@
 package com.example.livescore.Service;
 
-import com.example.livescore.Model.TeamJoinRequest;
+import com.google.cloud.firestore.FieldPath;
 import com.google.cloud.firestore.Firestore;
 import com.google.cloud.firestore.QueryDocumentSnapshot;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -16,6 +16,9 @@ import java.util.stream.Collectors;
 public class FirebaseService {
 
     private final Firestore firestore;
+
+    // ✅ added for Map ↔ Object conversion
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     /* ---------- CREATE / UPDATE ---------- */
 
@@ -79,6 +82,9 @@ public class FirebaseService {
                 .delete()
                 .get();
     }
+
+    /* ---------- GET SUB DOCUMENT ---------- */
+
     public <T> T getSub(
             String collection,
             String documentId,
@@ -96,6 +102,8 @@ public class FirebaseService {
                 .toObject(clazz);
     }
 
+    /* ---------- GET COLLECTION ---------- */
+
     public <T> List<T> getAll(String collection, Class<T> clazz) throws Exception {
 
         return firestore.collection(collection)
@@ -106,6 +114,9 @@ public class FirebaseService {
                 .map(doc -> doc.toObject(clazz))
                 .collect(Collectors.toList());
     }
+
+    /* ---------- GET SUBCOLLECTION ---------- */
+
     public <T> List<T> getAllSub(
             String collection,
             String documentId,
@@ -128,7 +139,29 @@ public class FirebaseService {
         return result;
     }
 
+    // =====================================================
+    // 🔥 CONVERT FIRESTORE MAP → JAVA CLASS
+    // =====================================================
+    public <T> T convert(Object source, Class<T> clazz) {
+        return objectMapper.convertValue(source, clazz);
+    }
+    public <T> T getCollectionGroupByDocId(
+            String collection,
+            String docId,
+            Class<T> clazz
+    ) throws Exception {
 
+        var query = firestore.collectionGroup(collection)
+                .whereEqualTo(FieldPath.documentId(), docId)
+                .get()
+                .get();
 
+        if (query.isEmpty())
+            throw new RuntimeException("Document not found");
 
+        return query.getDocuments().get(0).toObject(clazz);
+    }
+    public Firestore getFirestore() {
+        return firestore;
+    }
 }

@@ -3,7 +3,7 @@ package com.example.livescore.Service;
 import com.example.livescore.Model.Role;
 import com.example.livescore.Model.Sports;
 import com.example.livescore.Model.Team;
-import com.example.livescore.Model.Tournament;
+import com.example.livescore.Model.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -21,6 +21,7 @@ public class TeamService {
     private final UserService userService;
 
     private static final String COLLECTION = "teams";
+    private static final String USER_COLLECTION = "users";
 
     public Team createTeam(String creatorUid, Long maxPlayers, String name, Sports sports) throws Exception {
 
@@ -28,6 +29,7 @@ public class TeamService {
             throw new RuntimeException("maxPlayers must be >= 1");
         }
 
+        // ✅ create team
         Team team = Team.builder()
                 .id(UUID.randomUUID().toString())
                 .name(name)
@@ -42,7 +44,12 @@ public class TeamService {
 
         firebaseService.save(COLLECTION, team.getId(), team);
 
-        userService.updateRole(creatorUid, Role.TEAM_LEADER);
+        // ✅ update user role + teamId
+        User user = userService.getUser(creatorUid);
+        user.setRole(Role.valueOf(Role.TEAM_LEADER.name()));
+        user.setTeamId(team.getId());
+
+        firebaseService.save(USER_COLLECTION, creatorUid, user);
 
         return team;
     }
@@ -58,18 +65,17 @@ public class TeamService {
     public void deleteTeam(String teamId) throws Exception {
         firebaseService.delete(COLLECTION, teamId);
     }
-    public List<Team> getAllTeams() throws Exception {
 
+    public List<Team> getAllTeams() throws Exception {
         List<Team> teams = firebaseService.getAll(COLLECTION, Team.class);
 
-        // remove nulls (defensive)
         teams = teams.stream()
                 .filter(t -> t.getId() != null)
                 .collect(Collectors.toList());
 
-        // sort latest first
         teams.sort(Comparator.comparing(Team::getCreatedAt).reversed());
 
         return teams;
     }
+
 }

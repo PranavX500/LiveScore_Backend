@@ -25,12 +25,15 @@ public class SecurityConfig {
                 .sessionManagement(sm -> sm.sessionCreationPolicy(
                         SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-
+                        .requestMatchers("/ws/**").permitAll()
+                        .requestMatchers("/app/**").permitAll()
+                        .requestMatchers("/topic/**").permitAll()
                         .requestMatchers("/public/**").permitAll()
                         .requestMatchers("/auth/signup").permitAll()
                         .requestMatchers("/api/team/teams").permitAll()
                         .requestMatchers("/api/team/get/**").permitAll()
                         .requestMatchers("/api/tournament/**").permitAll()
+                        .requestMatchers("/score/**").permitAll()
 
 
 

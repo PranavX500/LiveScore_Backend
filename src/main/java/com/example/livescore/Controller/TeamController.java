@@ -3,6 +3,8 @@ package com.example.livescore.Controller;
 
 import com.example.livescore.Model.Sports;
 import com.example.livescore.Model.Team;
+import com.example.livescore.Model.TeamMember;
+import com.example.livescore.Service.TeamMemberService;
 import com.example.livescore.Service.TeamService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -17,6 +19,8 @@ import java.util.List;
 public class TeamController {
 
     private final TeamService teamService;
+
+    private final TeamMemberService teamMemberService;
 
     /* ---------- CREATE TEAM ---------- */
     @PostMapping("/create")
@@ -40,5 +44,9 @@ public class TeamController {
     @GetMapping("/get/{teamId}")
     public Team getTeamDetails(@PathVariable String teamId) throws Exception {
         return teamService.getTeam(teamId);
+    }
+    @GetMapping("/get/{teamId}/members")
+    public List<TeamMember> getTeamMembers(@PathVariable String teamId) throws Exception {
+        return teamMemberService.getMembersOfTeam(teamId);
     }
 }

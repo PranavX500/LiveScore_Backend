@@ -18,26 +18,27 @@ public class Tournament {
     private String name;
     private String location;
 
+    // Change the pattern to include .SSS (milliseconds) and XXX (ISO 8601 zone)
     @JsonFormat(shape = JsonFormat.Shape.STRING,
-            pattern = "yyyy-MM-dd'T'HH:mm:ss'Z'",
+            pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX",
             timezone = "UTC")
     private Date startDate;
 
     @JsonFormat(shape = JsonFormat.Shape.STRING,
-            pattern = "yyyy-MM-dd'T'HH:mm:ss'Z'",
+            pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX",
             timezone = "UTC")
     private Date endDate;
 
-    private Long totalTeams;        // capacity
-    private Long registeredTeams;   // current count
-    private Long requiredPlayer;    // min players/team
+    private Sports sports;
+    private Long totalTeams;
+    private Long registeredTeams;
+    private Long requiredPlayer;
 
     private Registeration registeration;
 
     @JsonFormat(shape = JsonFormat.Shape.STRING,
-            pattern = "yyyy-MM-dd'T'HH:mm:ss'Z'",
+            pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX",
             timezone = "UTC")
     private Date createdAt;
-
-
+   private Long totalOvers;;
 }

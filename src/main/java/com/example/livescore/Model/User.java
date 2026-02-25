@@ -22,6 +22,7 @@ public class User {
     private String photoUrl;
     private Date createdAt;
     private String role;
+    private String teamId;
 
     @Exclude
     public Role getRoleEnum() {
