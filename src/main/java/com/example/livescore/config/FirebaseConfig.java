@@ -8,6 +8,7 @@ import com.google.firebase.cloud.FirestoreClient;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 
 @Configuration
@@ -16,13 +17,14 @@ public class FirebaseConfig {
     @Bean
     public Firestore firestore() {
         try {
-            InputStream serviceAccount =
-                    getClass().getClassLoader()
-                            .getResourceAsStream("livescore-8b5ec-firebase-adminsdk-fbsvc-724558165f.json");
+            String firebaseConfig = System.getenv("FIREBASE_CONFIG");
 
-            if (serviceAccount == null) {
-                throw new RuntimeException("Firebase JSON not found in resources");
+            if (firebaseConfig == null || firebaseConfig.isEmpty()) {
+                throw new RuntimeException("FIREBASE_CONFIG env not set");
             }
+
+            InputStream serviceAccount =
+                    new ByteArrayInputStream(firebaseConfig.getBytes());
 
             FirebaseOptions options = FirebaseOptions.builder()
                     .setCredentials(GoogleCredentials.fromStream(serviceAccount))
