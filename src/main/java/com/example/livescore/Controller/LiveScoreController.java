@@ -47,5 +47,6 @@ public class LiveScoreController {
 
         liveScoreService.publish(event);
     }
+
 }
 

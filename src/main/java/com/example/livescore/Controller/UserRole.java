@@ -12,7 +12,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/get/tournament")
 @RequiredArgsConstructor
-@PreAuthorize("isAuthenticated()")
+
 public class UserRole {
 
     private final TournamentService tournamentService;
