@@ -33,6 +33,8 @@ public class LiveScoreEvent {
     private String strikerName;
     private String nonStrikerName;
     private String bowlerName;
+    private List<String> teamAPlayers;
+    private List<String> teamBPlayers;
 
     private String status; // LIVE / COMPLETED
 }

@@ -217,7 +217,6 @@ public class FixtureService {
 
         int innings = live.getInnings() == null ? 1 : live.getInnings();
 
-
         String striker = live.getStrikerId();
         String nonStriker = live.getNonStrikerId();
         String bowler = live.getBowlerId();
@@ -225,24 +224,22 @@ public class FixtureService {
         if (striker == null || bowler == null)
             throw new RuntimeException("Players not selected");
 
-        // ===== STATS FETCH =====
+        // ===== FETCH STATS =====
         BattingStat bat = live.getBattingStats().getOrDefault(
                 striker,
-                BattingStat.builder().runs(0).balls(0).fours(0).sixes(0).out(false).innings(innings) .build()
+                BattingStat.builder()
+                        .runs(0).balls(0).fours(0).sixes(0)
+                        .out(false).innings(innings)
+                        .build()
         );
 
         BowlingStat bowl = live.getBowlingStats().getOrDefault(
                 bowler,
-                BowlingStat.builder().balls(0).runs(0).wickets(0).innings(innings) .build()
+                BowlingStat.builder()
+                        .balls(0).runs(0).wickets(0)
+                        .innings(innings)
+                        .build()
         );
-        if (bat.getInnings() == null)
-            bat.setInnings(innings);
-
-        if (bowl.getInnings() == null)
-            bowl.setInnings(innings);
-
-        if (Boolean.TRUE.equals(bat.getOut()))
-            throw new RuntimeException("Player already out");
 
         // ===== APPLY BALL =====
         bat.setBalls(bat.getBalls() + 1);
@@ -276,7 +273,7 @@ public class FixtureService {
             live.getThisOver().add(String.valueOf(runs));
         }
 
-        // ⭐ SAVE STATS (BEFORE striker change)
+        // ===== SAVE STATS =====
         live.getBattingStats().put(striker, bat);
         live.getBowlingStats().put(bowler, bowl);
 
@@ -288,43 +285,41 @@ public class FixtureService {
         else
             live.setBallsB(live.getBallsB() + 1);
 
-        // ===== OVER COMPLETE =====
-        if (live.getBallsInOver() == 6) {
+        // ===== UPDATE OVERS EVERY BALL =====
+        if (innings == 1)
+            live.setOversA(calcOvers(live.getBallsA()));
+        else
+            live.setOversB(calcOvers(live.getBallsB()));
 
-            live.setBallsInOver(0);
-            live.setThisOver(new ArrayList<>());
-
-            if (innings == 1)
-                live.setOversA(calcOvers(live.getBallsA()));
-            else
-                live.setOversB(calcOvers(live.getBallsB()));
-
-            // swap strike
-            String tmp = striker;
-            striker = nonStriker;
-            nonStriker = tmp;
-        }
-
-        // ===== STRIKE ROTATE =====
+        // ===== STRIKE ROTATE (runs) =====
         if (!wicket && runs % 2 == 1) {
             String tmp = striker;
             striker = nonStriker;
             nonStriker = tmp;
         }
 
-        // wicket → striker removed
+        // ===== OVER COMPLETE =====
+        if (live.getBallsInOver() == 6) {
+
+            live.setBallsInOver(0);
+            live.setThisOver(new ArrayList<>());
+
+            // swap strike at over end
+            String tmp = striker;
+            striker = nonStriker;
+            nonStriker = tmp;
+        }
+
+        // ===== WICKET HANDLING =====
         if (wicket)
-            striker = null;
+            striker = null; // new batsman will come
 
         live.setStrikerId(striker);
         live.setNonStrikerId(nonStriker);
         live.setBowlerId(bowler);
         live.setLastBall(wicket ? "W" : String.valueOf(runs));
 
-        // =====================================================
-        // 🧠 INNINGS ENGINE (CORRECTED)
-        // =====================================================
-
+        // ===== INNINGS LOGIC =====
         if (innings == 1) {
 
             if (live.getBallsA() >= maxBalls || live.getWicketsA() >= 10) {
@@ -356,14 +351,16 @@ public class FixtureService {
         }
 
         match.setLiveData(live);
-        match.setUpdatedAt(Date.from(Instant.now()));
-
+        match.setUpdatedAt(new Date());
 
         firebaseService.saveSub(
                 COL, tournamentId, SUB_MATCH, matchId, match
         );
+
+        // ===== BROADCAST =====
         CricketScoreboard board = getCricketScoreboard(tournamentId, matchId);
         scoreBroadcastService.broadcastScore(matchId, board);
+
         LiveScoreEvent event = buildLiveScoreEvent(tournamentId, match);
         liveScorePublisher.publish(event);
     }
@@ -672,6 +669,17 @@ public class FixtureService {
         CricketLiveData live =
                 firebaseService.convert(match.getLiveData(), CricketLiveData.class);
 
+        if (live == null)
+            live = new CricketLiveData();
+
+        // ===== SAFE BALLS =====
+        int ballsA = live.getBallsA() == null ? 0 : live.getBallsA();
+        int ballsB = live.getBallsB() == null ? 0 : live.getBallsB();
+
+        // ===== SAFE WICKETS =====
+        int wicketsA = live.getWicketsA() == null ? 0 : live.getWicketsA();
+        int wicketsB = live.getWicketsB() == null ? 0 : live.getWicketsB();
+
         Map<String, BattingStat> batMap =
                 live.getBattingStats() == null ? new HashMap<>() : live.getBattingStats();
 
@@ -683,7 +691,7 @@ public class FixtureService {
         List<PlayerBowlingRow> bowlingA = new ArrayList<>();
         List<PlayerBowlingRow> bowlingB = new ArrayList<>();
 
-        // team members
+        // ===== TEAM MEMBERS =====
         List<TeamMember> teamA =
                 firebaseService.getAllSub("teams", match.getTeamAId(), "members", TeamMember.class);
 
@@ -738,23 +746,42 @@ public class FixtureService {
                 bowlingB.add(row);
         }
 
+        // ===== TEAM PLAYER LISTS (for UI) =====
+        List<String> teamAPlayers = teamA.stream()
+                .map(m -> getPlayerName(m.getUserId()))
+                .toList();
+
+        List<String> teamBPlayers = teamB.stream()
+                .map(m -> getPlayerName(m.getUserId()))
+                .toList();
+
+        // ===== BUILD EVENT =====
         return LiveScoreEvent.builder()
                 .matchId(match.getId())
                 .teamAName(match.getTeamAName())
                 .teamBName(match.getTeamBName())
                 .scoreA(match.getScoreA())
                 .scoreB(match.getScoreB())
-                .oversA(live.getOversA())
-                .oversB(live.getOversB())
-                .wicketsA(live.getWicketsA())
-                .wicketsB(live.getWicketsB())
+
+                // ⭐ FIX: overs derived from balls
+                .oversA(calcOvers(ballsA))
+                .oversB(calcOvers(ballsB))
+
+                .wicketsA(wicketsA)
+                .wicketsB(wicketsB)
+
                 .battingA(battingA)
                 .battingB(battingB)
                 .bowlingA(bowlingA)
                 .bowlingB(bowlingB)
+
+                .teamAPlayers(teamAPlayers)
+                .teamBPlayers(teamBPlayers)
+
                 .strikerName(getPlayerName(live.getStrikerId()))
                 .nonStrikerName(getPlayerName(live.getNonStrikerId()))
                 .bowlerName(getPlayerName(live.getBowlerId()))
+
                 .status(match.getStatus())
                 .build();
     }
@@ -797,4 +824,5 @@ public class FixtureService {
 
         return match;
     }
+
 }
