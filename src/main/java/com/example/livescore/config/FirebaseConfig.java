@@ -9,6 +9,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import java.io.InputStream;
+import java.io.ByteArrayInputStream;   // ✅ REQUIRED
+import java.util.Base64;
 
 @Configuration
 public class FirebaseConfig {
@@ -23,10 +25,10 @@ public class FirebaseConfig {
             }
 
             // decode base64 → JSON text
-            byte[] decoded = java.util.Base64.getDecoder().decode(base64Config);
+            byte[] decoded = Base64.getDecoder().decode(base64Config);
             String json = new String(decoded);
 
-            // 🔥 fix escaped newlines in private key
+            // fix escaped newlines in private key
             json = json.replace("\\n", "\n");
 
             InputStream serviceAccount =
@@ -46,5 +48,4 @@ public class FirebaseConfig {
             throw new RuntimeException("Firestore initialization failed", e);
         }
     }
-
 }
