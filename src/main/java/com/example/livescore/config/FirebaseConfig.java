@@ -14,31 +14,34 @@ import java.io.InputStream;
 @Configuration
 public class FirebaseConfig {
 
-    @Bean
-    public Firestore firestore() {
-        try {
-            String firebaseConfig = System.getenv("FIREBASE_CONFIG");
+ @Bean
+public Firestore firestore() {
+    try {
+        String firebaseConfig = System.getenv("FIREBASE_CONFIG");
 
-            if (firebaseConfig == null || firebaseConfig.isEmpty()) {
-                throw new RuntimeException("FIREBASE_CONFIG env not set");
-            }
-
-            InputStream serviceAccount =
-                    new ByteArrayInputStream(firebaseConfig.getBytes());
-
-            FirebaseOptions options = FirebaseOptions.builder()
-                    .setCredentials(GoogleCredentials.fromStream(serviceAccount))
-                    .build();
-
-            if (FirebaseApp.getApps().isEmpty()) {
-                FirebaseApp.initializeApp(options);
-            }
-
-            return FirestoreClient.getFirestore();
-
-        } catch (Exception e) {
-            throw new RuntimeException("Firestore initialization failed", e);
+        if (firebaseConfig == null || firebaseConfig.isEmpty()) {
+            throw new RuntimeException("FIREBASE_CONFIG env not set");
         }
+
+        // 🔥 convert escaped \n to real newline
+        firebaseConfig = firebaseConfig.replace("\\n", "\n");
+
+        InputStream serviceAccount =
+                new ByteArrayInputStream(firebaseConfig.getBytes());
+
+        FirebaseOptions options = FirebaseOptions.builder()
+                .setCredentials(GoogleCredentials.fromStream(serviceAccount))
+                .build();
+
+        if (FirebaseApp.getApps().isEmpty()) {
+            FirebaseApp.initializeApp(options);
+        }
+
+        return FirestoreClient.getFirestore();
+
+    } catch (Exception e) {
+        throw new RuntimeException("Firestore initialization failed", e);
     }
+}
 
 }
