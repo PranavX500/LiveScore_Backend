@@ -824,5 +824,143 @@ public class FixtureService {
 
         return match;
     }
+    public void selectNewBowler(
+            String tournamentId,
+            String matchId,
+            String bowlerId
+    ) throws Exception {
+
+        Match match = firebaseService.getSub(
+                COL,
+                tournamentId,
+                SUB_MATCH,
+                matchId,
+                Match.class
+        );
+
+        if (match.getSport() != Sports.CRICKET)
+            throw new RuntimeException("Not a cricket match");
+
+        CricketLiveData live =
+                firebaseService.convert(match.getLiveData(), CricketLiveData.class);
+
+        if (live == null)
+            throw new RuntimeException("Live data missing");
+
+        // ===== VALIDATION =====
+        if (bowlerId == null || bowlerId.isEmpty())
+            throw new RuntimeException("Invalid bowler");
+
+        // Optional: prevent same bowler consecutive overs
+        if (bowlerId.equals(live.getBowlerId()))
+            throw new RuntimeException("Same bowler cannot bowl consecutive over");
+
+        live.setBowlerId(bowlerId);
+
+        match.setLiveData(live);
+        match.setUpdatedAt(new Date());
+
+        firebaseService.saveSub(
+                COL,
+                tournamentId,
+                SUB_MATCH,
+                matchId,
+                match
+        );
+    }
+    public void selectNewStriker(
+            String tournamentId,
+            String matchId,
+            String newStrikerId
+    ) throws Exception {
+
+        Match match = firebaseService.getSub(
+                COL, tournamentId, SUB_MATCH, matchId, Match.class
+        );
+
+        if (match.getSport() != Sports.CRICKET)
+            throw new RuntimeException("Not cricket");
+
+        CricketLiveData live =
+                firebaseService.convert(match.getLiveData(), CricketLiveData.class);
+
+        if (live.getStrikerId() != null)
+            throw new RuntimeException("Striker already present");
+
+        // ensure player not already out
+        BattingStat stat = live.getBattingStats() != null
+                ? live.getBattingStats().get(newStrikerId)
+                : null;
+
+        if (stat != null && Boolean.TRUE.equals(stat.getOut()))
+            throw new RuntimeException("Player already out");
+
+        live.setStrikerId(newStrikerId);
+
+        match.setLiveData(live);
+        match.setUpdatedAt(new Date());
+
+        firebaseService.saveSub(
+                COL, tournamentId, SUB_MATCH, matchId, match
+        );
+    }
+    public List<TeamMember> getAvailableBatsmen(
+            String tournamentId,
+            String matchId
+    ) throws Exception {
+
+        Match match = firebaseService.getSub(
+                COL, tournamentId, SUB_MATCH, matchId, Match.class
+        );
+
+        CricketLiveData live =
+                firebaseService.convert(match.getLiveData(), CricketLiveData.class);
+
+        // all team A players
+        List<TeamMember> teamA =
+                firebaseService.getAllSub(
+                        "teams",
+                        match.getTeamAId(),
+                        "members",
+                        TeamMember.class
+                );
+
+        Set<String> exclude = new HashSet<>();
+
+        if (live.getStrikerId() != null)
+            exclude.add(live.getStrikerId());
+
+        if (live.getNonStrikerId() != null)
+            exclude.add(live.getNonStrikerId());
+
+        // exclude OUT players
+        if (live.getBattingStats() != null) {
+            live.getBattingStats().forEach((pid, stat) -> {
+                if (Boolean.TRUE.equals(stat.getOut()))
+                    exclude.add(pid);
+            });
+        }
+
+        List<TeamMember> available = new ArrayList<>();
+
+        for (TeamMember m : teamA) {
+            if (!exclude.contains(m.getUserId())) {
+                available.add(m);
+            }
+        }
+
+        return available;
+    }
+    private String getBattingTeamId(Match match, CricketLiveData live) {
+        return live.getInnings() == 1
+                ? match.getTeamAId()
+                : match.getTeamBId();
+    }
+
+    private String getBowlingTeamId(Match match, CricketLiveData live) {
+        return live.getInnings() == 1
+                ? match.getTeamBId()
+                : match.getTeamAId();
+    }
 
 }

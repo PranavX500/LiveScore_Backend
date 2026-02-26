@@ -37,6 +37,7 @@ public class SecurityConfig {
                         .requestMatchers("/live/**").permitAll()
                         .requestMatchers("/get/tournament").permitAll()
 
+                        .requestMatchers("/tournaments/**").hasRole("ADMIN")
 
 
                         .requestMatchers("/auth/make-admin/**").permitAll()
