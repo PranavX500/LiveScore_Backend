@@ -1,8 +1,10 @@
 package com.example.livescore.Service;
 
 import com.example.livescore.Dto.SignupRequest;
+import com.example.livescore.Model.EmailOtp;
 import com.example.livescore.Model.Role;
 import com.example.livescore.Model.User;
+import com.google.cloud.firestore.Firestore;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.UserRecord;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +20,7 @@ public class UserService {
 
     private final FirebaseService firebaseService;
     private static final String COLLECTION = "users";
+    private final Firestore firestore;
 
     /* ---------- SIGNUP ---------- */
     public User signup(SignupRequest request) throws Exception {
@@ -113,5 +116,59 @@ public class UserService {
         FirebaseAuth.getInstance().setCustomUserClaims(uid,
                 Map.of("role", role.name()));
     }
+    public User createOrGetByEmail(String email) throws Exception {
+
+        var doc = firestore.collection("users")
+                .document(email)
+                .get()
+                .get();
+
+        if (doc.exists())
+            return doc.toObject(User.class);
+
+        User user = User.builder()
+                .email(email)
+                .createdAt(new Date())
+                .role("PLAYER")
+                .build();
+
+        firestore.collection("users")
+                .document(email)
+                .set(user);
+
+        return user;
+    }
+    public User createAfterOtp(EmailOtp data) throws Exception {
+
+        // 1️⃣ Firebase Auth user
+        UserRecord.CreateRequest createRequest = new UserRecord.CreateRequest()
+                .setEmail(data.getEmail())
+                .setPassword(data.getPassword())
+                .setDisplayName(data.getName());
+
+        UserRecord userRecord =
+                FirebaseAuth.getInstance().createUser(createRequest);
+
+        String uid = userRecord.getUid();
+
+        // 2️⃣ Default role USER
+        FirebaseAuth.getInstance().setCustomUserClaims(uid,
+                Map.of("role", Role.USER.name()));
+
+        // 3️⃣ Firestore profile
+        User user = User.builder()
+                .id(uid)
+                .name(data.getName())
+                .email(data.getEmail())
+                .photoUrl(data.getPhotoUrl())
+                .role(Role.USER.name())   // ✅ USER initial
+                .createdAt(Date.from(Instant.now()))
+                .build();
+
+        firebaseService.save(COLLECTION, uid, user);
+
+        return user;
+    }
+
 
 }

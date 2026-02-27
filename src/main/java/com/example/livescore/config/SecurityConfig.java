@@ -30,12 +30,14 @@ public class SecurityConfig {
                         .requestMatchers("/topic/**").permitAll()
                         .requestMatchers("/public/**").permitAll()
                         .requestMatchers("/auth/signup").permitAll()
+                        .requestMatchers("/auth/verify-signup").permitAll()
                         .requestMatchers("/api/team/teams").permitAll()
                         .requestMatchers("/api/team/get/**").permitAll()
                         .requestMatchers("/api/tournament/**").permitAll()
                         .requestMatchers("/score/**").permitAll()
                         .requestMatchers("/live/**").permitAll()
                         .requestMatchers("/get/tournament").permitAll()
+                        .requestMatchers("/auth/resend-signup-otp").permitAll()
 
                         .requestMatchers("/tournaments/**").hasRole("ADMIN")
 
