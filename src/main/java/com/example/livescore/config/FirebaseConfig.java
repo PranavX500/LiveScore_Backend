@@ -9,8 +9,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import java.io.InputStream;
-import java.io.ByteArrayInputStream;   // ✅ REQUIRED
-import java.util.Base64;
 
 @Configuration
 public class FirebaseConfig {
@@ -18,21 +16,13 @@ public class FirebaseConfig {
     @Bean
     public Firestore firestore() {
         try {
-            String base64Config = System.getenv("FIREBASE_CONFIG");
-
-            if (base64Config == null || base64Config.isEmpty()) {
-                throw new RuntimeException("FIREBASE_CONFIG env not set");
-            }
-
-            // decode base64 → JSON text
-            byte[] decoded = Base64.getDecoder().decode(base64Config);
-            String json = new String(decoded);
-
-            // fix escaped newlines in private key
-            json = json.replace("\\n", "\n");
-
             InputStream serviceAccount =
-                    new ByteArrayInputStream(json.getBytes());
+                    getClass().getClassLoader()
+                            .getResourceAsStream("livescore-8b5ec-firebase-adminsdk-fbsvc-bbeaec1b04.json");
+
+            if (serviceAccount == null) {
+                throw new RuntimeException("Firebase JSON not found in resources");
+            }
 
             FirebaseOptions options = FirebaseOptions.builder()
                     .setCredentials(GoogleCredentials.fromStream(serviceAccount))
@@ -48,4 +38,5 @@ public class FirebaseConfig {
             throw new RuntimeException("Firestore initialization failed", e);
         }
     }
+
 }
