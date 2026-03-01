@@ -23,6 +23,7 @@ public class FixtureService {
     private final TeamService teamService;
     private final ScoreBroadcastService scoreBroadcastService;
     private final LiveScorePublisher  liveScorePublisher;
+    private final PlayerStatsService playerStatsService;
 
     private static final String COL = "tournaments";
     private static final String SUB_MATCH = "matches";
@@ -514,21 +515,30 @@ public class FixtureService {
 
         match.setScoreB(0);
     }
-    private void finishMatch(Match match, String winnerTeamId) {
 
-        match.setStatus("COMPLETED");
-        match.setWinnerTeamId(winnerTeamId);
-    }
     private void decideWinner(Match match) {
 
         if (match.getScoreA() > match.getScoreB()) {
             finishMatch(match, match.getTeamAId());
-        } else if (match.getScoreB() > match.getScoreA()) {
+            return;
+        }
+
+        if (match.getScoreB() > match.getScoreA()) {
             finishMatch(match, match.getTeamBId());
-        } else {
+            return;
+        }
+
+        // ✅ DRAW case also persists stats once
+        if (!"DRAW".equals(match.getStatus())) {
             match.setStatus("DRAW");
+            try {
+                persistCricketPlayerStats(match);
+            } catch (Exception e) {
+                log.error("Error saving player stats", e);
+            }
         }
     }
+
     private double addOver(double overs) {
         int whole = (int) overs;
         int balls = (int) Math.round((overs - whole) * 10);
@@ -961,6 +971,69 @@ public class FixtureService {
         return live.getInnings() == 1
                 ? match.getTeamBId()
                 : match.getTeamAId();
+    }
+    private void finishMatch(Match match, String winnerTeamId) {
+
+        // ✅ prevent duplicate persistence
+        if ("COMPLETED".equals(match.getStatus()))
+            return;
+
+        match.setStatus("COMPLETED");
+        match.setWinnerTeamId(winnerTeamId);
+
+        try {
+            persistCricketPlayerStats(match);
+        } catch (Exception e) {
+            log.error("Error saving player stats", e);
+        }
+    }
+
+    private void persistCricketPlayerStats(Match match) throws Exception {
+
+        if (match.getSport() != Sports.CRICKET)
+            return;
+
+        CricketLiveData live =
+                firebaseService.convert(match.getLiveData(), CricketLiveData.class);
+
+        if (live == null)
+            return;
+
+        Map<String, BattingStat> batMap =
+                live.getBattingStats() == null ? new HashMap<>() : live.getBattingStats();
+
+        Map<String, BowlingStat> bowlMap =
+                live.getBowlingStats() == null ? new HashMap<>() : live.getBowlingStats();
+
+        // ✅ get all players from both teams (even if they didn’t bat/bowl)
+        List<TeamMember> teamA =
+                firebaseService.getAllSub(
+                        "teams",
+                        match.getTeamAId(),
+                        "members",
+                        TeamMember.class
+                );
+
+        List<TeamMember> teamB =
+                firebaseService.getAllSub(
+                        "teams",
+                        match.getTeamBId(),
+                        "members",
+                        TeamMember.class
+                );
+
+        Set<String> players = new HashSet<>();
+
+        for (TeamMember m : teamA) players.add(m.getUserId());
+        for (TeamMember m : teamB) players.add(m.getUserId());
+
+        for (String pid : players) {
+
+            BattingStat bat = batMap.get(pid);
+            BowlingStat bowl = bowlMap.get(pid);
+
+            playerStatsService.updateCricketStats(pid, bat, bowl);
+        }
     }
 
 }

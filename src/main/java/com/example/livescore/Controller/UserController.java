@@ -1,10 +1,12 @@
 package com.example.livescore.Controller;
 
 import com.example.livescore.Dto.SignupRequest;
+import com.example.livescore.Model.PlayerCareerStats;
 import com.example.livescore.Model.Tournament;
 import com.example.livescore.Model.User;
 import com.example.livescore.Service.EmailOtpService;
 import com.example.livescore.Service.EmailService;
+import com.example.livescore.Service.PlayerStatsService;
 import com.example.livescore.Service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -20,6 +22,7 @@ import java.util.List;
 public class UserController {
 
     private final UserService userService;
+    private final PlayerStatsService playerStatsService;
 
     /* ---------- SIGNUP ---------- */
     /* ---------- SIGNUP STEP 1 → SEND OTP ---------- */
@@ -97,5 +100,13 @@ public class UserController {
 
         return "OTP resent";
     }
+    @PreAuthorize("hasRole('PLAYER')")
+    @GetMapping("/player/{userId}/cricket-stats")
+    public PlayerCareerStats getPlayerStats(
+            @PathVariable String userId
+    ) throws Exception {
 
+        return playerStatsService.getCricketStats(userId);
+    }
 }
+

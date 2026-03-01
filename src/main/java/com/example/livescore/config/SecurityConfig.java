@@ -38,6 +38,7 @@ public class SecurityConfig {
                         .requestMatchers("/live/**").permitAll()
                         .requestMatchers("/get/tournament").permitAll()
                         .requestMatchers("/auth/resend-signup-otp").permitAll()
+                        .requestMatchers("/auth/player/**").hasRole("PLAYER")
 
                         .requestMatchers("/tournaments/**").hasRole("ADMIN")
 
