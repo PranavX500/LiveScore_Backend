@@ -169,7 +169,9 @@ public class FixtureService {
             String tournamentId,
             String matchId,
             int runs,
-            boolean wicket
+            boolean wicket,
+            boolean wide,
+            boolean noBall
     ) throws Exception {
 
         Match match = firebaseService.getSub(
@@ -191,7 +193,6 @@ public class FixtureService {
         CricketLiveData live =
                 firebaseService.convert(match.getLiveData(), CricketLiveData.class);
 
-        // ===== SAFE INIT =====
         if (live.getBattingStats() == null)
             live.setBattingStats(new HashMap<>());
 
@@ -225,7 +226,6 @@ public class FixtureService {
         if (striker == null || bowler == null)
             throw new RuntimeException("Players not selected");
 
-        // ===== FETCH STATS =====
         BattingStat bat = live.getBattingStats().getOrDefault(
                 striker,
                 BattingStat.builder()
@@ -242,85 +242,125 @@ public class FixtureService {
                         .build()
         );
 
-        // ===== APPLY BALL =====
-        bat.setBalls(bat.getBalls() + 1);
-        bowl.setBalls(bowl.getBalls() + 1);
+        boolean extraBall = wide || noBall;
 
-        if (innings == 1)
-            match.setScoreA(match.getScoreA() + runs);
-        else
-            match.setScoreB(match.getScoreB() + runs);
-
-        if (wicket) {
-
-            bat.setOut(true);
-            bowl.setWickets(bowl.getWickets() + 1);
+        // =====================================================
+        // EXTRA BALL LOGIC (Wide / No Ball)
+        // =====================================================
+        if (extraBall) {
 
             if (innings == 1)
-                live.setWicketsA(live.getWicketsA() + 1);
+                match.setScoreA(match.getScoreA() + 1);
             else
-                live.setWicketsB(live.getWicketsB() + 1);
+                match.setScoreB(match.getScoreB() + 1);
 
-            live.getThisOver().add("W");
+            bowl.setRuns(bowl.getRuns() + 1);
 
-        } else {
+            if (wide) {
+                live.getThisOver().add("Wd");
+                live.setLastBall("Wd");
+            }
 
-            bat.setRuns(bat.getRuns() + runs);
-            bowl.setRuns(bowl.getRuns() + runs);
-
-            if (runs == 4) bat.setFours(bat.getFours() + 1);
-            if (runs == 6) bat.setSixes(bat.getSixes() + 1);
-
-            live.getThisOver().add(String.valueOf(runs));
+            if (noBall) {
+                live.getThisOver().add("Nb");
+                live.setLastBall("Nb");
+            }
         }
 
-        // ===== SAVE STATS =====
+        // =====================================================
+        // NORMAL BALL LOGIC
+        // =====================================================
+        else {
+
+            bat.setBalls(bat.getBalls() + 1);
+            bowl.setBalls(bowl.getBalls() + 1);
+
+            if (innings == 1)
+                match.setScoreA(match.getScoreA() + runs);
+            else
+                match.setScoreB(match.getScoreB() + runs);
+
+            if (wicket) {
+
+                bat.setOut(true);
+                bowl.setWickets(bowl.getWickets() + 1);
+
+                if (innings == 1)
+                    live.setWicketsA(live.getWicketsA() + 1);
+                else
+                    live.setWicketsB(live.getWicketsB() + 1);
+
+                live.getThisOver().add("W");
+            }
+
+            else {
+
+                bat.setRuns(bat.getRuns() + runs);
+                bowl.setRuns(bowl.getRuns() + runs);
+
+                if (runs == 4)
+                    bat.setFours(bat.getFours() + 1);
+
+                if (runs == 6)
+                    bat.setSixes(bat.getSixes() + 1);
+
+                live.getThisOver().add(String.valueOf(runs));
+            }
+
+            // =====================================================
+            // BALL COUNT ONLY LEGAL BALL
+            // =====================================================
+            live.setBallsInOver(live.getBallsInOver() + 1);
+
+            if (innings == 1)
+                live.setBallsA(live.getBallsA() + 1);
+            else
+                live.setBallsB(live.getBallsB() + 1);
+
+            // overs update
+            if (innings == 1)
+                live.setOversA(calcOvers(live.getBallsA()));
+            else
+                live.setOversB(calcOvers(live.getBallsB()));
+
+            // strike rotate
+            if (!wicket && runs % 2 == 1) {
+                String tmp = striker;
+                striker = nonStriker;
+                nonStriker = tmp;
+            }
+
+            // over complete
+            if (live.getBallsInOver() == 6) {
+
+                live.setBallsInOver(0);
+                live.setThisOver(new ArrayList<>());
+
+                String tmp = striker;
+                striker = nonStriker;
+                nonStriker = tmp;
+            }
+
+            // wicket handling
+            if (wicket)
+                striker = null;
+
+            live.setLastBall(wicket ? "W" : String.valueOf(runs));
+        }
+
+        // =====================================================
+        // SAVE STATS
+        // =====================================================
         live.getBattingStats().put(striker, bat);
         live.getBowlingStats().put(bowler, bowl);
-
-        // ===== BALL COUNT =====
-        live.setBallsInOver(live.getBallsInOver() + 1);
-
-        if (innings == 1)
-            live.setBallsA(live.getBallsA() + 1);
-        else
-            live.setBallsB(live.getBallsB() + 1);
-
-        // ===== UPDATE OVERS EVERY BALL =====
-        if (innings == 1)
-            live.setOversA(calcOvers(live.getBallsA()));
-        else
-            live.setOversB(calcOvers(live.getBallsB()));
-
-        // ===== STRIKE ROTATE (runs) =====
-        if (!wicket && runs % 2 == 1) {
-            String tmp = striker;
-            striker = nonStriker;
-            nonStriker = tmp;
-        }
-
-        // ===== OVER COMPLETE =====
-        if (live.getBallsInOver() == 6) {
-
-            live.setBallsInOver(0);
-            live.setThisOver(new ArrayList<>());
-
-            // swap strike at over end
-            String tmp = striker;
-            striker = nonStriker;
-            nonStriker = tmp;
-        }
-
-        // ===== WICKET HANDLING =====
-        if (wicket)
-            striker = null; // new batsman will come
 
         live.setStrikerId(striker);
         live.setNonStrikerId(nonStriker);
         live.setBowlerId(bowler);
-        live.setLastBall(wicket ? "W" : String.valueOf(runs));
 
-        // ===== INNINGS LOGIC =====
+        // =====================================================
+        // INNINGS LOGIC
+        // =====================================================
         if (innings == 1) {
 
             if (live.getBallsA() >= maxBalls || live.getWicketsA() >= 10) {
@@ -346,6 +386,7 @@ public class FixtureService {
             if (match.getScoreB() >= live.getTarget()) {
                 finishMatch(match, match.getTeamBId());
             }
+
             else if (live.getBallsB() >= maxBalls || live.getWicketsB() >= 10) {
                 decideWinner(match);
             }
@@ -358,7 +399,6 @@ public class FixtureService {
                 COL, tournamentId, SUB_MATCH, matchId, match
         );
 
-        // ===== BROADCAST =====
         CricketScoreboard board = getCricketScoreboard(tournamentId, matchId);
         scoreBroadcastService.broadcastScore(matchId, board);
 
