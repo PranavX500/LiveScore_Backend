@@ -50,13 +50,19 @@ public class MatchController {
             @PathVariable String tournamentId,
             @PathVariable String matchId,
             @RequestParam int runs,
-            @RequestParam boolean wicket
+            @RequestParam boolean wicket,
+            @RequestParam boolean wide,
+            @RequestParam boolean noBall
+
     ) throws Exception {
         fixtureService.updateCricketBall(
                 tournamentId,
                 matchId,
                 runs,
-                wicket
+                wicket,
+                wide,
+                noBall
+
         );
         return "Ball updated";
     }
