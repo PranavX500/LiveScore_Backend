@@ -39,7 +39,7 @@ public class SecurityConfig {
                         .requestMatchers("/get/tournament").permitAll()
                         .requestMatchers("/auth/resend-signup-otp").permitAll()
                         .requestMatchers("/auth/player/**").hasRole("PLAYER")
-                        .requestMatchers("/PointTable").permitAll()
+                        .requestMatchers("/PointTable/**").permitAll()
 
                         .requestMatchers("/tournaments/**").hasRole("ADMIN")
 
