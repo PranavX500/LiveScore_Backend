@@ -40,6 +40,7 @@ public class Match {
 
     private Map<String, BattingStat> battingStats;
     private Map<String, BowlingStat> bowlingStats;
+    private Boolean processedForPoints;
 
     private String winnerTeamId;
 }

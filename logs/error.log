@@ -1,5 +1,5 @@
-2026-03-05T20:52:38.718+05:30 ERROR 80820 --- [livescore] [main] t.s.DeferredServletContainerInitializers : Error starting Tomcat context. Exception: org.springframework.beans.factory.UnsatisfiedDependencyException. Message: Error creating bean with name 'firebaseAuthenticationFilter' defined in file [/home/pranav/IdeaProjects/livescore/target/classes/com/example/livescore/security/FirebaseAuthenticationFilter.class]: Unsatisfied dependency expressed through constructor parameter 1: Error creating bean with name 'userService' defined in file [/home/pranav/IdeaProjects/livescore/target/classes/com/example/livescore/Service/UserService.class]: Unsatisfied dependency expressed through constructor parameter 0: Error creating bean with name 'firebaseService' defined in file [/home/pranav/IdeaProjects/livescore/target/classes/com/example/livescore/Service/FirebaseService.class]: Unsatisfied dependency expressed through constructor parameter 0: Error creating bean with name 'firestore' defined in class path resource [com/example/livescore/config/FirebaseConfig.class]: Failed to instantiate [com.google.cloud.firestore.Firestore]: Factory method 'firestore' threw exception with message: Firestore initialization failed
-2026-03-05T20:52:38.752+05:30 ERROR 80820 --- [livescore] [main] o.s.boot.SpringApplication               : Application run failed
+2026-03-06T21:32:27.991+05:30 ERROR 54523 --- [livescore] [main] t.s.DeferredServletContainerInitializers : Error starting Tomcat context. Exception: org.springframework.beans.factory.UnsatisfiedDependencyException. Message: Error creating bean with name 'firebaseAuthenticationFilter' defined in file [/home/pranav/IdeaProjects/livescore/target/classes/com/example/livescore/security/FirebaseAuthenticationFilter.class]: Unsatisfied dependency expressed through constructor parameter 1: Error creating bean with name 'userService' defined in file [/home/pranav/IdeaProjects/livescore/target/classes/com/example/livescore/Service/UserService.class]: Unsatisfied dependency expressed through constructor parameter 0: Error creating bean with name 'firebaseService' defined in file [/home/pranav/IdeaProjects/livescore/target/classes/com/example/livescore/Service/FirebaseService.class]: Unsatisfied dependency expressed through constructor parameter 0: Error creating bean with name 'firestore' defined in class path resource [com/example/livescore/config/FirebaseConfig.class]: Failed to instantiate [com.google.cloud.firestore.Firestore]: Factory method 'firestore' threw exception with message: Firestore initialization failed
+2026-03-06T21:32:28.026+05:30 ERROR 54523 --- [livescore] [main] o.s.boot.SpringApplication               : Application run failed
 
 org.springframework.context.ApplicationContextException: Unable to start web server
 	at org.springframework.boot.web.server.servlet.context.ServletWebServerApplicationContext.onRefresh(ServletWebServerApplicationContext.java:167) ~[spring-boot-web-server-4.0.2.jar:4.0.2]
@@ -133,4 +133,18 @@ Caused by: java.lang.RuntimeException: Firestore initialization failed
 Caused by: java.lang.RuntimeException: FIREBASE_CONFIG env not set
 	at com.example.livescore.config.FirebaseConfig.firestore(FirebaseConfig.java:23) ~[classes/:na]
 	... 106 common frames omitted
+
+2026-03-06T21:39:35.700+05:30 ERROR 55324 --- [livescore] [main] o.s.b.d.LoggingFailureAnalysisReporter   : 
+
+***************************
+APPLICATION FAILED TO START
+***************************
+
+Description:
+
+Web server failed to start. Port 8080 was already in use.
+
+Action:
+
+Identify and stop the process that's listening on port 8080 or configure this application to listen on another port.
 
