@@ -1023,6 +1023,7 @@ public class FixtureService {
 
         try {
             persistCricketPlayerStats(match);
+            updatePointsTable(match);
         } catch (Exception e) {
             log.error("Error saving player stats", e);
         }
@@ -1074,6 +1075,122 @@ public class FixtureService {
 
             playerStatsService.updateCricketStats(pid, bat, bowl);
         }
+    }
+    private void updatePointsTable(Match match) throws Exception {
+
+        String winnerId = match.getWinnerTeamId();
+
+        String loserId;
+        String winnerName;
+        String loserName;
+
+        if (winnerId.equals(match.getTeamAId())) {
+            loserId = match.getTeamBId();
+            winnerName = match.getTeamAName();
+            loserName = match.getTeamBName();
+        } else {
+            loserId = match.getTeamAId();
+            winnerName = match.getTeamBName();
+            loserName = match.getTeamAName();
+        }
+
+        updateWinnerRow(
+                match.getTournamentId(),
+                winnerId,
+                winnerName
+        );
+
+        updateLoserRow(
+                match.getTournamentId(),
+                loserId,
+                loserName
+        );
+    }
+    private void updateWinnerRow(
+            String tournamentId,
+            String teamId,
+            String teamName
+    ) throws Exception {
+
+        PointsTable row = firebaseService.getSub(
+                "tournaments",
+                tournamentId,
+                "pointsTable",
+                teamId,
+                PointsTable.class
+        );
+
+        if (row == null) {
+            row = PointsTable.builder()
+                    .teamId(teamId)
+                    .teamName(teamName)
+                    .played(0L)
+                    .won(0L)
+                    .lost(0L)
+                    .points(0L)
+                    .build();
+        }
+
+        row.setPlayed(row.getPlayed() + 1);
+        row.setWon(row.getWon() + 1);
+        row.setPoints(row.getPoints() + 1);
+
+        firebaseService.saveSub(
+                "tournaments",
+                tournamentId,
+                "pointsTable",
+                teamId,
+                row
+        );
+    }
+    private void updateLoserRow(
+            String tournamentId,
+            String teamId,
+            String teamName
+    ) throws Exception {
+
+        PointsTable row = firebaseService.getSub(
+                "tournaments",
+                tournamentId,
+                "pointsTable",
+                teamId,
+                PointsTable.class
+        );
+
+        if (row == null) {
+            row = PointsTable.builder()
+                    .teamId(teamId)
+                    .teamName(teamName)
+                    .played(0L)
+                    .won(0L)
+                    .lost(0L)
+                    .points(0L)
+                    .build();
+        }
+
+        row.setPlayed(row.getPlayed() + 1);
+        row.setLost(row.getLost() + 1);
+
+        firebaseService.saveSub(
+                "tournaments",
+                tournamentId,
+                "pointsTable",
+                teamId,
+                row
+        );
+    }
+    public List<PointsTable> getPointsTable(String tournamentId) throws Exception {
+
+        List<PointsTable> table = firebaseService.getAllSub(
+                "tournaments",
+                tournamentId,
+                "pointsTable",
+                PointsTable.class
+        );
+
+        table.sort((a, b) -> Long.compare(b.getPoints(), a.getPoints()));
+
+        return table;
     }
 
 }

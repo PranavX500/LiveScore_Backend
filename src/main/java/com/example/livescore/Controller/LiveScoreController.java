@@ -2,9 +2,11 @@ package com.example.livescore.Controller;
 
 import com.example.livescore.Dto.LiveScoreEvent;
 import com.example.livescore.Model.Match;
+import com.example.livescore.Model.PointsTable;
 import com.example.livescore.Service.FixtureService;
 import com.example.livescore.Service.LiveScorePublisher;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.SendTo;
@@ -47,6 +49,8 @@ public class LiveScoreController {
 
         liveScoreService.publish(event);
     }
+
+
 
 }
 
