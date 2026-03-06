@@ -1095,26 +1095,26 @@ public class FixtureService {
         }
 
         updateWinnerRow(
-                match.getTournamentId(),
+                match,
                 winnerId,
                 winnerName
         );
 
         updateLoserRow(
-                match.getTournamentId(),
+                match,
                 loserId,
                 loserName
         );
     }
     private void updateWinnerRow(
-            String tournamentId,
+            Match match,
             String teamId,
             String teamName
     ) throws Exception {
 
         PointsTable row = firebaseService.getSub(
                 "tournaments",
-                tournamentId,
+                match.getTournamentId(),
                 "pointsTable",
                 teamId,
                 PointsTable.class
@@ -1128,30 +1128,59 @@ public class FixtureService {
                     .won(0L)
                     .lost(0L)
                     .points(0L)
+                    .runsScored(0L)
+                    .runsConceded(0L)
+                    .oversFaced(0.0)
+                    .oversBowled(0.0)
+                    .nrr(0.0)
                     .build();
         }
+
+        CricketLiveData live =
+                firebaseService.convert(match.getLiveData(), CricketLiveData.class);
+
+        boolean isA = teamId.equals(match.getTeamAId());
+
+        long scored = isA ? match.getScoreA() : match.getScoreB();
+        long conceded = isA ? match.getScoreB() : match.getScoreA();
+
+        double faced = isA
+                ? oversToReal(isA ? live.getOversA() : live.getOversB())
+                : oversToReal(isA ? live.getOversB() : live.getOversA());
+
+        double bowled = isA
+                ? oversToReal(isA ? live.getOversB() : live.getOversA())
+                : oversToReal(isA ? live.getOversA() : live.getOversB());
 
         row.setPlayed(row.getPlayed() + 1);
         row.setWon(row.getWon() + 1);
         row.setPoints(row.getPoints() + 1);
 
+        row.setRunsScored(row.getRunsScored() + scored);
+        row.setRunsConceded(row.getRunsConceded() + conceded);
+
+        row.setOversFaced(row.getOversFaced() + faced);
+        row.setOversBowled(row.getOversBowled() + bowled);
+
+        row.setNrr(calcNRR(row));
+
         firebaseService.saveSub(
                 "tournaments",
-                tournamentId,
+                match.getTournamentId(),
                 "pointsTable",
                 teamId,
                 row
         );
     }
     private void updateLoserRow(
-            String tournamentId,
+            Match match,
             String teamId,
             String teamName
     ) throws Exception {
 
         PointsTable row = firebaseService.getSub(
                 "tournaments",
-                tournamentId,
+                match.getTournamentId(),
                 "pointsTable",
                 teamId,
                 PointsTable.class
@@ -1165,15 +1194,44 @@ public class FixtureService {
                     .won(0L)
                     .lost(0L)
                     .points(0L)
+                    .runsScored(0L)
+                    .runsConceded(0L)
+                    .oversFaced(0.0)
+                    .oversBowled(0.0)
+                    .nrr(0.0)
                     .build();
         }
+
+        CricketLiveData live =
+                firebaseService.convert(match.getLiveData(), CricketLiveData.class);
+
+        boolean isA = teamId.equals(match.getTeamAId());
+
+        long scored = isA ? match.getScoreA() : match.getScoreB();
+        long conceded = isA ? match.getScoreB() : match.getScoreA();
+
+        double faced = isA
+                ? oversToReal(live.getOversA())
+                : oversToReal(live.getOversB());
+
+        double bowled = isA
+                ? oversToReal(live.getOversB())
+                : oversToReal(live.getOversA());
 
         row.setPlayed(row.getPlayed() + 1);
         row.setLost(row.getLost() + 1);
 
+        row.setRunsScored(row.getRunsScored() + scored);
+        row.setRunsConceded(row.getRunsConceded() + conceded);
+
+        row.setOversFaced(row.getOversFaced() + faced);
+        row.setOversBowled(row.getOversBowled() + bowled);
+
+        row.setNrr(calcNRR(row));
+
         firebaseService.saveSub(
                 "tournaments",
-                tournamentId,
+                match.getTournamentId(),
                 "pointsTable",
                 teamId,
                 row
@@ -1191,6 +1249,26 @@ public class FixtureService {
         table.sort((a, b) -> Long.compare(b.getPoints(), a.getPoints()));
 
         return table;
+    }
+    private double oversToReal(double overs) {
+
+        int whole = (int) overs;
+        int balls = (int) Math.round((overs - whole) * 10);
+
+        return whole + (balls / 6.0);
+    }
+    private double calcNRR(PointsTable row) {
+
+        if (row.getOversFaced() == 0 || row.getOversBowled() == 0)
+            return 0.0;
+
+        double scoredRate =
+                row.getRunsScored() / row.getOversFaced();
+
+        double concededRate =
+                row.getRunsConceded() / row.getOversBowled();
+
+        return Math.round((scoredRate - concededRate) * 1000.0) / 1000.0;
     }
 
 }

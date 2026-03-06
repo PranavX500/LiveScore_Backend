@@ -17,6 +17,11 @@ public class PointsTable {
     private Long played;
     private Long won;
     private Long lost;
+    private Long runsScored;
+    private Double oversFaced;
 
+    private Long runsConceded;
+    private Double oversBowled;
+    private Double nrr;
     private Long points;
 }
