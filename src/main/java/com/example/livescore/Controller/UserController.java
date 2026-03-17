@@ -15,6 +15,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/auth")
@@ -107,6 +108,12 @@ public class UserController {
     ) throws Exception {
 
         return playerStatsService.getCricketStats(userId);
+    }
+    @GetMapping("/count/players")
+    public ResponseEntity<Map<String, Long>> countPlayers() throws Exception {
+        return ResponseEntity.ok(Map.of(
+                "playerCount", userService.countPlayers()
+        ));
     }
 }
 

@@ -35,7 +35,7 @@ public class FirebaseAuthenticationFilter extends OncePerRequestFilter {
                 || path.startsWith("/score")|| path.startsWith("/ws")          // ⭐ ADD THIS
                 || path.startsWith("/topic")       // ⭐ ADD THIS
                 || path.startsWith("/app")|| path.startsWith("/get/tournament") ||path.startsWith("/auth/verify-signup")
-                || path.startsWith("/auth/resend-signup-otp")||path.startsWith("/PointTable");
+                || path.startsWith("/auth/resend-signup-otp")||path.startsWith("/PointTable")||path.startsWith("/auth/count/players");
         log.info("FILTER CHECK → {} | skip={}", path, skip);
         return skip;
     }

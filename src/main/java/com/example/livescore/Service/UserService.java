@@ -170,5 +170,14 @@ public class UserService {
         return user;
     }
 
+    public long countPlayers() throws Exception {
+
+        return firestore.collection("users")
+                .whereEqualTo("role", "PLAYER")
+                .get()
+                .get()
+                .size();
+    }
+
 
 }
