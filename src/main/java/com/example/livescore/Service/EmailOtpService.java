@@ -4,6 +4,7 @@ import com.example.livescore.Dto.SignupRequest;
 import com.example.livescore.Model.EmailOtp;
 import com.google.cloud.firestore.Firestore;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -13,12 +14,17 @@ import java.util.Random;
 @RequiredArgsConstructor
 public class EmailOtpService {
 
+    private final EmailService emailService;
     private final Firestore firestore;
     private final FirebaseService firebaseService;
+    private final PasswordEncoder passwordEncoder;
+
     private String generateOtp() {
         int otp = 100000 + new Random().nextInt(900000);
         return String.valueOf(otp);
     }
+
+    // ================= NORMAL OTP =================
 
     public String createOtp(String email) throws Exception {
 
@@ -27,14 +33,26 @@ public class EmailOtpService {
         EmailOtp emailOtp = EmailOtp.builder()
                 .email(email)
                 .otp(otp)
-                .expiresAt(Instant.now().plusSeconds(300)) // 5 min
+                .expiresAt(Instant.now().plusSeconds(300))
                 .build();
 
+        // save and wait for completion
         firestore.collection("email_otps")
                 .document(email)
-                .set(emailOtp);
+                .set(emailOtp)
+                .get();
 
-        return otp;
+        try {
+            emailService.sendOtp(email, otp);
+        } catch (Exception e) {
+            // rollback if email fails
+            firestore.collection("email_otps")
+                    .document(email)
+                    .delete();
+            throw new RuntimeException("Failed to send OTP");
+        }
+
+        return "OTP sent successfully";
     }
 
     public boolean verifyOtp(String email, String otp) throws Exception {
@@ -63,6 +81,9 @@ public class EmailOtpService {
 
         return true;
     }
+
+    // ================= SIGNUP OTP =================
+
     public String createSignupOtp(SignupRequest req) throws Exception {
 
         String otp = generateOtp();
@@ -70,7 +91,7 @@ public class EmailOtpService {
         EmailOtp data = EmailOtp.builder()
                 .email(req.getEmail())
                 .name(req.getName())
-                .password(req.getPassword())
+                .password(passwordEncoder.encode(req.getPassword())) // 🔐 FIXED
                 .photoUrl(req.getPhotoUrl())
                 .otp(otp)
                 .expiresAt(Instant.now().plusSeconds(300))
@@ -79,7 +100,14 @@ public class EmailOtpService {
 
         firebaseService.save("signup_otps", req.getEmail(), data);
 
-        return otp;
+        try {
+            emailService.sendOtp(req.getEmail(), otp);
+        } catch (Exception e) {
+            firebaseService.delete("signup_otps", req.getEmail());
+            e.printStackTrace(); // 🔥 shows real error
+            throw new RuntimeException("Failed to send OTP: " + e.getMessage());
+        }
+        return "Signup OTP sent successfully";
     }
 
     public EmailOtp verifySignupOtp(String email, String otp) throws Exception {
@@ -100,6 +128,7 @@ public class EmailOtpService {
 
         return stored;
     }
+
     public String resendSignupOtp(String email) throws Exception {
 
         EmailOtp existing =
@@ -123,8 +152,12 @@ public class EmailOtpService {
 
         firebaseService.save("signup_otps", email, existing);
 
-        return newOtp;
+        try {
+            emailService.sendOtp(email, newOtp);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to resend OTP");
+        }
+
+        return "OTP resent successfully";
     }
-
-
 }
