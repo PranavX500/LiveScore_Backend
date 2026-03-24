@@ -28,6 +28,7 @@ public class FirebaseAuthenticationFilter extends OncePerRequestFilter {
     private final FirebaseAuthService firebaseAuthService;
     private final UserService userService;
 
+
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getServletPath();

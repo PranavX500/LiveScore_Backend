@@ -1,47 +1,57 @@
 package com.example.livescore.Service;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.*;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
+import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
 public class EmailService {
 
-    private final String API_KEY = System.getenv("RESEND_API_KEY");
+    @Value("${emailKey}")
+    private String apiKey;
 
-    public void sendOtp(String email, String otp) throws Exception {
+    private final RestTemplate restTemplate = new RestTemplate();
 
-        String html = """
-            <div style="font-family:Arial;padding:20px">
-              <h2>LiveScore OTP</h2>
-              <p>Your verification code is:</p>
-              <h1 style="letter-spacing:4px">%s</h1>
-              <p>This code expires in 5 minutes.</p>
-            </div>
-        """.formatted(otp);
+    private final String URL = "https://api.brevo.com/v3/smtp/email";
 
-        String body = """
-        {
-          "from": "LiveScore <onboarding@resend.dev>",
-          "to": "%s",
-          "subject": "Your LiveScore OTP",
-          "html": "%s"
+    public void sendOtp(String email, String otp) {
+
+        try {
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+
+            // ✅ Brevo uses api-key header (NOT Authorization)
+            headers.set("api-key", apiKey);
+
+            Map<String, Object> body = Map.of(
+                    "sender", Map.of(
+                            "name", "LiveScore",
+                            "email", "ps5840432@gmail.com" // verified email
+                    ),
+                    "to", List.of(
+                            Map.of("email", email)
+                    ),
+                    "subject", "Your OTP Code",
+                    "htmlContent", "<h3>Your OTP is: <b>" + otp + "</b></h3><p>Valid for 5 minutes</p>"
+            );
+
+            HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
+
+            ResponseEntity<String> response =
+                    restTemplate.postForEntity(URL, request, String.class);
+
+            System.out.println("Status: " + response.getStatusCode());
+            System.out.println("Response: " + response.getBody());
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("Brevo email failed: " + e.getMessage());
         }
-        """.formatted(email, html.replace("\"", "\\\""));
-
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create("https://api.resend.com/emails"))
-                .header("Authorization", "Bearer " + API_KEY)
-                .header("Content-Type", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString(body))
-                .build();
-
-        HttpClient.newHttpClient()
-                .send(request, HttpResponse.BodyHandlers.ofString());
     }
 }
