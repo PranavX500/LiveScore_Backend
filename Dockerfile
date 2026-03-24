@@ -5,11 +5,8 @@ WORKDIR /app
 COPY . .
 
 RUN chmod +x mvnw
-RUN ./mvnw clean package -DskipTests
+RUN ./mvnw clean package -Dmaven.test.skip=true
 
-# DO NOT hardcode PORT ❌
-
-# Expose is optional but fine
 EXPOSE 8080
 
-CMD ["sh", "-c", "java -jar target/*.jar --server.port=${PORT}"]
+CMD ["java", "-jar", "target/*.jar"]
