@@ -39,6 +39,7 @@ public class MatchController {
             @PathVariable String matchId
     ) throws Exception {
         fixtureService.startMatch(tournamentId, matchId);
+
         return "Match started";
     }
 
@@ -85,6 +86,7 @@ public class MatchController {
                 nonStrikerId,
                 bowlerId
         );
+
     }
 
     // ======================================

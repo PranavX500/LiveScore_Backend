@@ -1,6 +1,7 @@
 package com.example.livescore.Service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
@@ -11,6 +12,7 @@ import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class EmailService {
 
     @Value("${emailKey}")
@@ -38,6 +40,7 @@ public class EmailService {
 
     private void sendEmail(String email, String subject, String htmlContent) {
         try {
+            log.info("Email send requested to={} subject={}", email, subject);
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
             headers.set("api-key", apiKey);
@@ -58,10 +61,10 @@ public class EmailService {
             ResponseEntity<String> response =
                     restTemplate.postForEntity(URL, request, String.class);
 
-            System.out.println("Status: " + response.getStatusCode());
-            System.out.println("Response: " + response.getBody());
+            log.info("Email send accepted to={} status={} response={}",
+                    email, response.getStatusCode(), response.getBody());
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Email send failed to={} subject={}", email, subject, e);
             throw new RuntimeException("Brevo email failed: " + e.getMessage());
         }
     }
