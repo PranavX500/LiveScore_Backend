@@ -1,9 +1,11 @@
 package com.example.livescore.Controller;
 
 import com.example.livescore.Dto.SignupRequest;
+import com.example.livescore.Model.AppNotification;
 import com.example.livescore.Model.PlayerCareerStats;
 import com.example.livescore.Model.User;
 import com.example.livescore.Service.EmailOtpService;
+import com.example.livescore.Service.NotificationService;
 import com.example.livescore.Service.PlayerStatsService;
 import com.example.livescore.Service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -12,6 +14,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -22,6 +25,7 @@ public class UserController {
     private final UserService userService;
     private final PlayerStatsService playerStatsService;
     private final EmailOtpService otpService;
+    private final NotificationService notificationService;
 
     // ================= SIGNUP =================
 
@@ -79,6 +83,43 @@ public class UserController {
 
         String uid = authentication.getName();
         return userService.getUser(uid);
+    }
+
+    @PostMapping("/me/device-token")
+    public ResponseEntity<Map<String, String>> saveDeviceToken(
+            Authentication authentication,
+            @RequestParam String token
+    ) throws Exception {
+
+        if (authentication == null)
+            throw new RuntimeException("Unauthenticated");
+
+        notificationService.saveDeviceToken(authentication.getName(), token);
+        return ResponseEntity.ok(Map.of("message", "Device token saved"));
+    }
+
+    @GetMapping("/me/notifications")
+    public List<AppNotification> myNotifications(
+            Authentication authentication
+    ) throws Exception {
+
+        if (authentication == null)
+            throw new RuntimeException("Unauthenticated");
+
+        return notificationService.getNotifications(authentication.getName());
+    }
+
+    @PatchMapping("/me/notifications/{notificationId}/read")
+    public ResponseEntity<Map<String, String>> markNotificationRead(
+            Authentication authentication,
+            @PathVariable String notificationId
+    ) throws Exception {
+
+        if (authentication == null)
+            throw new RuntimeException("Unauthenticated");
+
+        notificationService.markAsRead(authentication.getName(), notificationId);
+        return ResponseEntity.ok(Map.of("message", "Notification marked as read"));
     }
 
     @PostMapping("/make-admin/{uid}")
