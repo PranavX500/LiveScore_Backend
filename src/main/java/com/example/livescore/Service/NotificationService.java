@@ -3,7 +3,7 @@ package com.example.livescore.Service;
 import com.example.livescore.Model.AppNotification;
 import com.example.livescore.Model.Match;
 import com.example.livescore.Model.Tournament;
-import com.example.livescore.Model.User;
+import com.google.cloud.firestore.DocumentSnapshot;
 import com.google.cloud.firestore.QueryDocumentSnapshot;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.messaging.MulticastMessage;
@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -37,20 +38,25 @@ public class NotificationService {
             throw new IllegalArgumentException("token is required");
         }
 
-        User user = firebaseService.get(USERS, uid, User.class);
-        if (user == null) {
+        DocumentSnapshot doc = firebaseService.getFirestore()
+                .collection(USERS)
+                .document(uid)
+                .get()
+                .get();
+
+        if (!doc.exists()) {
             throw new RuntimeException("User not found");
         }
 
-        List<String> fcmTokens = user.getFcmTokens();
-        if (fcmTokens == null) {
-            fcmTokens = new ArrayList<>();
-        }
+        List<String> fcmTokens = extractTokens(doc.getData());
 
         if (!fcmTokens.contains(normalizedToken)) {
             fcmTokens.add(normalizedToken);
-            user.setFcmTokens(fcmTokens);
-            firebaseService.save(USERS, uid, user);
+            firebaseService.getFirestore()
+                    .collection(USERS)
+                    .document(uid)
+                    .update("fcmTokens", fcmTokens)
+                    .get();
         }
     }
 
@@ -94,8 +100,13 @@ public class NotificationService {
 
     public void notifyMatchStarted(Tournament tournament, Match match) throws Exception {
 
-        List<User> users = firebaseService.getAll(USERS, User.class);
-        if (users.isEmpty()) {
+        List<QueryDocumentSnapshot> userDocs = firebaseService.getFirestore()
+                .collection(USERS)
+                .get()
+                .get()
+                .getDocuments();
+
+        if (userDocs.isEmpty()) {
             return;
         }
 
@@ -106,14 +117,12 @@ public class NotificationService {
 
         Set<String> tokens = new LinkedHashSet<>();
 
-        for (User user : users) {
-            if (user == null || user.getId() == null) {
-                continue;
-            }
+        for (QueryDocumentSnapshot userDoc : userDocs) {
+            String userId = userDoc.getId();
 
             AppNotification notification = AppNotification.builder()
                     .id(UUID.randomUUID().toString())
-                    .userId(user.getId())
+                    .userId(userId)
                     .title(title)
                     .body(body)
                     .type("MATCH_STARTED")
@@ -125,17 +134,15 @@ public class NotificationService {
 
             firebaseService.saveSub(
                     USERS,
-                    user.getId(),
+                    userId,
                     SUB_NOTIFICATIONS,
                     notification.getId(),
                     notification
             );
 
-            if (user.getFcmTokens() != null) {
-                for (String token : user.getFcmTokens()) {
-                    if (token != null && !token.isBlank()) {
-                        tokens.add(token);
-                    }
+            for (String token : extractTokens(userDoc.getData())) {
+                if (token != null && !token.isBlank()) {
+                    tokens.add(token);
                 }
             }
         }
@@ -164,5 +171,25 @@ public class NotificationService {
 
     private String safe(String value) {
         return value == null ? "" : value;
+    }
+
+    private List<String> extractTokens(Map<String, Object> data) {
+        List<String> tokens = new ArrayList<>();
+        if (data == null) {
+            return tokens;
+        }
+
+        Object rawTokens = data.get("fcmTokens");
+        if (!(rawTokens instanceof List<?> tokenList)) {
+            return tokens;
+        }
+
+        for (Object token : tokenList) {
+            if (token instanceof String value && !value.isBlank()) {
+                tokens.add(value);
+            }
+        }
+
+        return tokens;
     }
 }
