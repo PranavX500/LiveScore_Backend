@@ -45,9 +45,12 @@ public class SecurityConfig {
                         .requestMatchers("/auth/player/**").hasRole("PLAYER")
                         .requestMatchers("/PointTable/**").permitAll()
                         .requestMatchers("/auth/count/players").permitAll()
+                        .requestMatchers("/auth/team-leader/stats").hasRole("TEAM_LEADER")
 
                         .requestMatchers("/tournaments/**").hasRole("ADMIN")
+                        .requestMatchers("/auth/admin/stats").hasRole("ADMIN")
                         .requestMatchers("/live/upcoming").permitAll()
+                        .requestMatchers("/auth/me/notifications/**").permitAll()
 
 
                         .requestMatchers("/auth/make-admin/**").permitAll()
