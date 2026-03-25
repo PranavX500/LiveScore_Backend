@@ -20,6 +20,7 @@ public class CricketLiveData {
     private String strikerId;
     private String nonStrikerId;
     private String bowlerId;
+    private String lastCompletedOverBowlerId;
 
     // ==============================
     // OVERS / BALLS

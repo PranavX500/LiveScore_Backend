@@ -36,7 +36,7 @@ public class TeamService {
                 .leaderId(creatorUid)
                 .sports(sports)
                 .maxPlayers(maxPlayers)
-                .currentPlayers(1L)
+                .currentPlayers(0L)
                 .status("OPEN")
                 .tournamentId(null)
                 .createdAt(Instant.now())
