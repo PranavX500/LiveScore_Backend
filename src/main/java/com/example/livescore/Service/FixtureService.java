@@ -6,6 +6,7 @@ import com.example.livescore.Dto.PlayerBattingRow;
 import com.example.livescore.Dto.PlayerBowlingRow;
 import com.example.livescore.Model.*;
 import com.google.cloud.firestore.FieldPath;
+import com.google.cloud.firestore.QueryDocumentSnapshot;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -452,6 +453,67 @@ public class FixtureService {
                 SUB_MATCH,
                 Match.class
         );
+    }
+
+    public List<Match> getUpcomingMatches(String tournamentId) throws Exception {
+
+        List<Match> matches = getMatches(tournamentId);
+
+        return matches.stream()
+                .filter(Objects::nonNull)
+                .filter(match -> "UPCOMING".equalsIgnoreCase(match.getStatus()))
+                .sorted(Comparator.comparing(
+                        Match::getScheduledAt,
+                        Comparator.nullsLast(Date::compareTo)
+                ))
+                .toList();
+    }
+
+    public List<Match> getUpcomingMatches() throws Exception {
+
+        List<QueryDocumentSnapshot> docs = firebaseService.getFirestore()
+                .collectionGroup(SUB_MATCH)
+                .get()
+                .get()
+                .getDocuments();
+
+        return docs.stream()
+                .map(doc -> {
+                    Match match = doc.toObject(Match.class);
+                    if (match.getId() == null) {
+                        match.setId(doc.getId());
+                    }
+                    if (match.getTournamentId() == null) {
+                        match.setTournamentId(doc.getReference().getParent().getParent().getId());
+                    }
+                    return match;
+                })
+                .filter(match -> "UPCOMING".equalsIgnoreCase(match.getStatus()))
+                .sorted(Comparator.comparing(
+                        Match::getScheduledAt,
+                        Comparator.nullsLast(Date::compareTo)
+                ))
+                .toList();
+    }
+
+    public List<Match> getUpcomingMatches(int page, int size) throws Exception {
+
+        if (page < 0) {
+            throw new IllegalArgumentException("page must be >= 0");
+        }
+        if (size <= 0) {
+            throw new IllegalArgumentException("size must be > 0");
+        }
+
+        int fromIndex = page * size;
+
+        List<Match> matches = getUpcomingMatches();
+        if (fromIndex >= matches.size()) {
+            return List.of();
+        }
+
+        int toIndex = Math.min(fromIndex + size, matches.size());
+        return matches.subList(fromIndex, toIndex);
     }
     // =====================================================
 // START CRICKET INNINGS

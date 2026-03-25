@@ -10,7 +10,7 @@ COPY . .
 RUN chmod +x mvnw
 
 # Build Spring Boot jar
-RUN ./mvnw clean package -DskipTests
+RUN ./mvnw clean package -Dmaven.test.skip=true
 
 # Platform provides PORT (Railway/Render)
 ENV PORT=8080

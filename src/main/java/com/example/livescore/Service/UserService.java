@@ -5,7 +5,9 @@ import com.example.livescore.Model.EmailOtp;
 import com.example.livescore.Model.Role;
 import com.example.livescore.Model.User;
 import com.google.cloud.firestore.Firestore;
+import com.google.firebase.auth.FirebaseAuthException;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.AuthErrorCode;
 import com.google.firebase.auth.UserRecord;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -140,28 +142,53 @@ public class UserService {
     }
     public User createAfterOtp(EmailOtp data) throws Exception {
 
-        // 1️⃣ Firebase Auth user
-        UserRecord.CreateRequest createRequest = new UserRecord.CreateRequest()
-                .setEmail(data.getEmail())
-                .setPassword(data.getPassword())
-                .setDisplayName(data.getName());
+        FirebaseAuth auth = FirebaseAuth.getInstance();
+        UserRecord userRecord = null;
 
-        UserRecord userRecord =
-                FirebaseAuth.getInstance().createUser(createRequest);
+        // Reuse an existing Firebase Auth account when this request is retried.
+        try {
+            userRecord = auth.getUserByEmail(data.getEmail());
+        } catch (FirebaseAuthException e) {
+            if (e.getAuthErrorCode() != AuthErrorCode.USER_NOT_FOUND) {
+                throw e;
+            }
+        }
+
+        if (userRecord == null) {
+            UserRecord.CreateRequest createRequest = new UserRecord.CreateRequest()
+                    .setEmail(data.getEmail())
+                    .setPassword(data.getPassword())
+                    .setDisplayName(data.getName());
+
+            try {
+                userRecord = auth.createUser(createRequest);
+            } catch (FirebaseAuthException e) {
+                if (e.getAuthErrorCode() != AuthErrorCode.EMAIL_ALREADY_EXISTS) {
+                    throw e;
+                }
+                userRecord = auth.getUserByEmail(data.getEmail());
+            }
+        }
 
         String uid = userRecord.getUid();
 
-        // 2️⃣ Default role USER
-        FirebaseAuth.getInstance().setCustomUserClaims(uid,
-                Map.of("role", Role.USER.name()));
+        // 3️⃣ CHECK if Firestore profile already exists
+        User existingUser = firebaseService.get(COLLECTION, uid, User.class);
 
-        // 3️⃣ Firestore profile
+        if (existingUser != null) {
+            return existingUser; // ✅ idempotent
+        }
+
+        // 4️⃣ Set role in Firebase
+        auth.setCustomUserClaims(uid, Map.of("role", Role.USER.name()));
+
+        // 5️⃣ Create Firestore profile
         User user = User.builder()
                 .id(uid)
                 .name(data.getName())
                 .email(data.getEmail())
                 .photoUrl(data.getPhotoUrl())
-                .role(Role.USER.name())   // ✅ USER initial
+                .role(Role.USER.name())
                 .createdAt(Date.from(Instant.now()))
                 .build();
 
@@ -169,7 +196,6 @@ public class UserService {
 
         return user;
     }
-
     public long countPlayers() throws Exception {
 
         return firestore.collection("users")

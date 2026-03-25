@@ -4,7 +4,6 @@ import com.example.livescore.Dto.SignupRequest;
 import com.example.livescore.Model.EmailOtp;
 import com.google.cloud.firestore.Firestore;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -17,7 +16,6 @@ public class EmailOtpService {
     private final EmailService emailService;
     private final Firestore firestore;
     private final FirebaseService firebaseService;
-    private final PasswordEncoder passwordEncoder;
 
     private String generateOtp() {
         int otp = 100000 + new Random().nextInt(900000);
@@ -91,7 +89,7 @@ public class EmailOtpService {
         EmailOtp data = EmailOtp.builder()
                 .email(req.getEmail())
                 .name(req.getName())
-                .password(passwordEncoder.encode(req.getPassword())) // 🔐 FIXED
+                .password(req.getPassword())
                 .photoUrl(req.getPhotoUrl())
                 .otp(otp)
                 .expiresAt(Instant.now().plusSeconds(300))
