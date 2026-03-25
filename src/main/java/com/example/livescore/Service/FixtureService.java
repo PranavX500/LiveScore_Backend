@@ -539,6 +539,10 @@ public class FixtureService {
                 Match.class
         );
 
+        boolean shouldNotifyMatchStart =
+                !"LIVE".equalsIgnoreCase(match.getStatus());
+
+
         if (match.getSport() != Sports.CRICKET)
             throw new RuntimeException("Not a cricket match");
 
@@ -599,6 +603,11 @@ public class FixtureService {
                 matchId,
                 match
         );
+
+        if (innings == 1 && shouldNotifyMatchStart) {
+            Tournament tournament = firebaseService.get(COL, tournamentId, Tournament.class);
+            notificationService.notifyMatchStarted(tournament, match);
+        }
     }
     private void swapTeams(Match match) {
 

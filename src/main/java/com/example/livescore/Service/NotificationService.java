@@ -5,6 +5,9 @@ import com.example.livescore.Model.Match;
 import com.example.livescore.Model.Tournament;
 import com.google.cloud.firestore.DocumentSnapshot;
 import com.google.cloud.firestore.QueryDocumentSnapshot;
+import com.google.firebase.auth.ExportedUserRecord;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.ListUsersPage;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.messaging.MulticastMessage;
 import com.google.firebase.messaging.Notification;
@@ -30,6 +33,7 @@ public class NotificationService {
     private static final String SUB_NOTIFICATIONS = "notifications";
 
     private final FirebaseService firebaseService;
+    private final EmailService emailService;
 
     public void saveDeviceToken(String uid, String token) throws Exception {
 
@@ -112,10 +116,12 @@ public class NotificationService {
 
         String title = "Match started";
         String tournamentName = tournament != null ? tournament.getName() : "Tournament";
-        String body = match.getTeamAName() + " vs " + match.getTeamBName()
+        String matchLabel = match.getTeamAName() + " vs " + match.getTeamBName();
+        String body = matchLabel
                 + " has started in " + tournamentName + ".";
 
         Set<String> tokens = new LinkedHashSet<>();
+        Set<String> emails = new LinkedHashSet<>();
 
         for (QueryDocumentSnapshot userDoc : userDocs) {
             String userId = userDoc.getId();
@@ -144,6 +150,25 @@ public class NotificationService {
                 if (token != null && !token.isBlank()) {
                     tokens.add(token);
                 }
+            }
+
+            String email = extractEmail(userDoc.getData());
+            if (email != null) {
+                emails.add(email);
+            }
+        }
+
+        addFirebaseAuthEmails(emails);
+        log.info("Match start email recipients count={} tournamentId={} matchId={}",
+                emails.size(), match.getTournamentId(), match.getId());
+
+        for (String email : emails) {
+            try {
+                log.info("Sending match start email to={} tournamentId={} matchId={}",
+                        email, match.getTournamentId(), match.getId());
+                emailService.sendMatchStartedEmail(email, tournamentName, matchLabel);
+            } catch (Exception e) {
+                log.error("Failed to send match started email to {}", email, e);
             }
         }
 
@@ -191,5 +216,35 @@ public class NotificationService {
         }
 
         return tokens;
+    }
+
+    private String extractEmail(Map<String, Object> data) {
+        if (data == null) {
+            return null;
+        }
+
+        Object rawEmail = data.get("email");
+        if (rawEmail instanceof String email && !email.isBlank()) {
+            return email.trim();
+        }
+
+        return null;
+    }
+
+    private void addFirebaseAuthEmails(Set<String> emails) {
+        try {
+            ListUsersPage page = FirebaseAuth.getInstance().listUsers(null);
+            while (page != null) {
+                for (ExportedUserRecord user : page.getValues()) {
+                    String email = user.getEmail();
+                    if (email != null && !email.isBlank()) {
+                        emails.add(email.trim());
+                    }
+                }
+                page = page.getNextPage();
+            }
+        } catch (Exception e) {
+            log.error("Failed to load Firebase Auth emails for match start notification", e);
+        }
     }
 }
