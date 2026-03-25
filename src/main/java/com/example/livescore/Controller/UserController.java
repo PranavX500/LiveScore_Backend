@@ -1,12 +1,18 @@
 package com.example.livescore.Controller;
 
+import com.example.livescore.Dto.AdminStats;
 import com.example.livescore.Dto.SignupRequest;
+import com.example.livescore.Dto.TeamLeaderStats;
+import com.example.livescore.Dto.UserStats;
 import com.example.livescore.Model.AppNotification;
 import com.example.livescore.Model.PlayerCareerStats;
 import com.example.livescore.Model.User;
 import com.example.livescore.Service.EmailOtpService;
 import com.example.livescore.Service.NotificationService;
 import com.example.livescore.Service.PlayerStatsService;
+import com.example.livescore.Service.AdminStatsService;
+import com.example.livescore.Service.TeamLeaderStatsService;
+import com.example.livescore.Service.UserStatsService;
 import com.example.livescore.Service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -26,6 +32,9 @@ public class UserController {
     private final PlayerStatsService playerStatsService;
     private final EmailOtpService otpService;
     private final NotificationService notificationService;
+    private final AdminStatsService adminStatsService;
+    private final TeamLeaderStatsService teamLeaderStatsService;
+    private final UserStatsService userStatsService;
 
     // ================= SIGNUP =================
 
@@ -134,6 +143,36 @@ public class UserController {
     @GetMapping("/player/{userId}/cricket-stats")
     public PlayerCareerStats getPlayerStats(@PathVariable String userId) throws Exception {
         return playerStatsService.getCricketStats(userId);
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/admin/stats")
+    public AdminStats getAdminStats() throws Exception {
+        return adminStatsService.getStats();
+    }
+
+    @PreAuthorize("hasRole('TEAM_LEADER')")
+    @GetMapping("/team-leader/stats")
+    public TeamLeaderStats getTeamLeaderStats(
+            Authentication authentication
+    ) throws Exception {
+
+        if (authentication == null)
+            throw new RuntimeException("Unauthenticated");
+
+        return teamLeaderStatsService.getStats(authentication.getName());
+    }
+
+    @PreAuthorize("hasRole('USER')")
+    @GetMapping("/user/stats")
+    public UserStats getUserStats(
+            Authentication authentication
+    ) throws Exception {
+
+        if (authentication == null)
+            throw new RuntimeException("Unauthenticated");
+
+        return userStatsService.getStats(authentication.getName());
     }
 
     @GetMapping("/count/players")
