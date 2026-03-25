@@ -9,7 +9,9 @@ import com.google.cloud.firestore.FieldPath;
 import com.google.cloud.firestore.QueryDocumentSnapshot;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
 import java.util.*;
@@ -227,6 +229,8 @@ public class FixtureService {
         String striker = live.getStrikerId();
         String nonStriker = live.getNonStrikerId();
         String bowler = live.getBowlerId();
+        String activeStriker = striker;
+        String activeBowler = bowler;
 
         if (striker == null || bowler == null)
             throw new RuntimeException("Players not selected");
@@ -340,6 +344,8 @@ public class FixtureService {
 
                 live.setBallsInOver(0);
                 live.setThisOver(new ArrayList<>());
+                live.setLastCompletedOverBowlerId(activeBowler);
+                bowler = null;
 
                 String tmp = striker;
                 striker = nonStriker;
@@ -356,8 +362,8 @@ public class FixtureService {
         // =====================================================
         // SAVE STATS
         // =====================================================
-        live.getBattingStats().put(striker, bat);
-        live.getBowlingStats().put(bowler, bowl);
+        live.getBattingStats().put(activeStriker, bat);
+        live.getBowlingStats().put(activeBowler, bowl);
 
         live.setStrikerId(striker);
         live.setNonStrikerId(nonStriker);
@@ -382,6 +388,7 @@ public class FixtureService {
                 live.setStrikerId(null);
                 live.setNonStrikerId(null);
                 live.setBowlerId(null);
+                live.setLastCompletedOverBowlerId(null);
                 live.setBallsInOver(0);
                 live.setThisOver(new ArrayList<>());
             }
@@ -576,6 +583,7 @@ public class FixtureService {
         live.setStrikerId(strikerId);
         live.setNonStrikerId(nonStrikerId);
         live.setBowlerId(bowlerId);
+        live.setLastCompletedOverBowlerId(null);
 
         // reset over
         live.setThisOver(new ArrayList<>());
@@ -974,11 +982,34 @@ public class FixtureService {
 
         // ===== VALIDATION =====
         if (bowlerId == null || bowlerId.isEmpty())
-            throw new RuntimeException("Invalid bowler");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid bowler");
 
-        // Optional: prevent same bowler consecutive overs
-        if (bowlerId.equals(live.getBowlerId()))
-            throw new RuntimeException("Same bowler cannot bowl consecutive over");
+        String currentBowlerId = live.getBowlerId();
+        int ballsInOver = live.getBallsInOver() == null ? 0 : live.getBallsInOver();
+
+        if (currentBowlerId != null) {
+            if (currentBowlerId.equals(bowlerId))
+                return;
+
+            if (ballsInOver > 0) {
+                throw new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST,
+                        "Cannot change bowler in the middle of an over"
+                );
+            }
+        }
+
+        String previousOverBowlerId = live.getLastCompletedOverBowlerId();
+        if (previousOverBowlerId == null && ballsInOver == 0) {
+            previousOverBowlerId = currentBowlerId;
+        }
+
+        if (bowlerId.equals(previousOverBowlerId)) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Same bowler cannot bowl consecutive overs"
+            );
+        }
 
         live.setBowlerId(bowlerId);
 
