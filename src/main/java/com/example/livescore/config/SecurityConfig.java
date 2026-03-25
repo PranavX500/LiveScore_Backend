@@ -47,6 +47,7 @@ public class SecurityConfig {
                         .requestMatchers("/auth/count/players").permitAll()
 
                         .requestMatchers("/tournaments/**").hasRole("ADMIN")
+                        .requestMatchers("/live/upcoming").permitAll()
 
 
                         .requestMatchers("/auth/make-admin/**").permitAll()

@@ -13,6 +13,7 @@ import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -34,6 +35,21 @@ public class LiveScoreController {
         return fixtureService.getLiveMatches(tournamentId);
     }
 
+    @GetMapping("/upcoming")
+    public List<Match> upcomingMatches(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "4") int size
+    ) throws Exception {
+        return fixtureService.getUpcomingMatches(page, size);
+    }
+
+    @GetMapping("/{tournamentId}/upcoming")
+    public List<Match> upcomingMatchesByTournament(
+            @PathVariable String tournamentId
+    ) throws Exception {
+        return fixtureService.getUpcomingMatches(tournamentId);
+    }
+
 
     // client sends: /app/live-score/{matchId}
     @MessageMapping("/live-score/{tournamentId}/{matchId}")
@@ -53,4 +69,3 @@ public class LiveScoreController {
 
 
 }
-
