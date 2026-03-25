@@ -30,6 +30,7 @@ public class NotificationService {
     private static final String SUB_NOTIFICATIONS = "notifications";
 
     private final FirebaseService firebaseService;
+    private final EmailService emailService;
 
     public void saveDeviceToken(String uid, String token) throws Exception {
 
@@ -112,7 +113,8 @@ public class NotificationService {
 
         String title = "Match started";
         String tournamentName = tournament != null ? tournament.getName() : "Tournament";
-        String body = match.getTeamAName() + " vs " + match.getTeamBName()
+        String matchLabel = match.getTeamAName() + " vs " + match.getTeamBName();
+        String body = matchLabel
                 + " has started in " + tournamentName + ".";
 
         Set<String> tokens = new LinkedHashSet<>();
@@ -143,6 +145,15 @@ public class NotificationService {
             for (String token : extractTokens(userDoc.getData())) {
                 if (token != null && !token.isBlank()) {
                     tokens.add(token);
+                }
+            }
+
+            String email = extractEmail(userDoc.getData());
+            if (email != null) {
+                try {
+                    emailService.sendMatchStartedEmail(email, tournamentName, matchLabel);
+                } catch (Exception e) {
+                    log.error("Failed to send match started email to {}", email, e);
                 }
             }
         }
@@ -191,5 +202,18 @@ public class NotificationService {
         }
 
         return tokens;
+    }
+
+    private String extractEmail(Map<String, Object> data) {
+        if (data == null) {
+            return null;
+        }
+
+        Object rawEmail = data.get("email");
+        if (rawEmail instanceof String email && !email.isBlank()) {
+            return email.trim();
+        }
+
+        return null;
     }
 }
