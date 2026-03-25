@@ -9,6 +9,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.Instant;
 import java.util.Date;
+import java.util.List;
 
 @Data
 @NoArgsConstructor
@@ -23,6 +24,7 @@ public class User {
     private Date createdAt;
     private String role;
     private String teamId;
+    private List<String> fcmTokens;
 
     @Exclude
     public Role getRoleEnum() {
@@ -33,6 +35,5 @@ public class User {
         this.role = role == null ? null : role.name();
     }
 }
-
 
 

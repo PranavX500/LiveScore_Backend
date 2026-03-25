@@ -25,6 +25,7 @@ public class FixtureService {
     private final ScoreBroadcastService scoreBroadcastService;
     private final LiveScorePublisher  liveScorePublisher;
     private final PlayerStatsService playerStatsService;
+    private final NotificationService notificationService;
 
     private static final String COL = "tournaments";
     private static final String SUB_MATCH = "matches";
@@ -149,6 +150,9 @@ public class FixtureService {
                 matchId,
                 match
         );
+
+        Tournament tournament = firebaseService.get(COL, tournamentId, Tournament.class);
+        notificationService.notifyMatchStarted(tournament, match);
     }
     public Match getMatch(
             String tournamentId,
