@@ -522,7 +522,7 @@ public class FixtureService {
     // =====================================================
 // START CRICKET INNINGS
 // =====================================================
-    public void startCricketInnings(
+   public void startCricketInnings(
             String tournamentId,
             String matchId,
             String strikerId,
